@@ -1,0 +1,162 @@
+import type { User, Post } from '@/lib/types';
+import { PlaceHolderImages } from '@/lib/placeholder-images';
+
+const findImage = (id: string) => PlaceHolderImages.find(img => img.id === id)?.imageUrl || '';
+
+export const users: User[] = [
+  {
+    id: 'user-1',
+    username: 'vibemaster',
+    name: 'Alex Doe',
+    avatarUrl: findImage('avatar-1'),
+    bio: 'Just here for the vibes ✨',
+    followers: 1200,
+    following: 150,
+  },
+  {
+    id: 'user-2',
+    username: 'pixelperfect',
+    name: 'Jessica Smith',
+    avatarUrl: findImage('avatar-2'),
+    bio: 'Capturing moments, one pixel at a time. 📸',
+    followers: 5430,
+    following: 200,
+  },
+  {
+    id: 'user-3',
+    username: 'soundwave',
+    name: 'Chris Lee',
+    avatarUrl: findImage('avatar-3'),
+    bio: 'DJ & Producer. Music is my life.',
+    followers: 25000,
+    following: 50,
+  },
+  {
+    id: 'user-4',
+    username: 'janedoe',
+    name: 'Jane Doe',
+    avatarUrl: findImage('avatar-4'),
+    bio: 'Exploring the world and sharing my journey.',
+    followers: 800,
+    following: 300,
+  },
+  {
+    id: 'user-5',
+    username: 'creativecortex',
+    name: 'Mia Wong',
+    avatarUrl: findImage('avatar-5'),
+    bio: 'Digital artist and storyteller.',
+    followers: 12000,
+    following: 500,
+  }
+];
+
+export const currentUser = users[0];
+
+export const posts: Post[] = [
+  {
+    id: 'post-1',
+    author: users[1],
+    mediaUrl: findImage('post-1'),
+    mediaType: 'image',
+    caption: 'Cyberpunk city nights are a different kind of magic.',
+    likes: 234,
+    comments: [
+      { id: 'comment-1-1', author: users[0], text: 'This is amazing! 🔥', createdAt: '2h ago' },
+      { id: 'comment-1-2', author: users[2], text: 'Wow, what a shot!', createdAt: '1h ago' },
+    ],
+    createdAt: '3h ago',
+  },
+  {
+    id: 'post-2',
+    author: users[2],
+    mediaUrl: findImage('post-2'),
+    mediaType: 'image',
+    caption: 'Finding peace in nature\'s embrace. Perfect spot to meditate and create new sounds.',
+    likes: 540,
+    comments: [],
+    createdAt: '5h ago',
+  },
+  {
+    id: 'post-3',
+    author: users[3],
+    mediaUrl: findImage('post-3'),
+    mediaType: 'image',
+    caption: 'Playing with colors and shapes. What do you see?',
+    likes: 120,
+    comments: [],
+    createdAt: '1d ago',
+  },
+  {
+    id: 'post-4',
+    author: users[4],
+    mediaUrl: findImage('post-4'),
+    mediaType: 'image',
+    caption: 'Street style in the city that never sleeps.',
+    likes: 890,
+    comments: [
+      { id: 'comment-4-1', author: users[1], text: 'Love this look!', createdAt: '2d ago' },
+    ],
+    createdAt: '2d ago',
+  },
+  {
+    id: 'post-5',
+    author: users[0],
+    mediaUrl: findImage('post-5'),
+    mediaType: 'image',
+    caption: 'Brunch goals! This was too good not to share.',
+    likes: 450,
+    comments: [],
+    createdAt: '3d ago',
+  },
+    {
+    id: 'post-6',
+    author: users[1],
+    mediaUrl: findImage('post-6'),
+    mediaType: 'image',
+    caption: 'Lost in the beauty of this place. Unforgettable.',
+    likes: 621,
+    comments: [],
+    createdAt: '3d ago',
+  },
+  {
+    id: 'post-7',
+    author: users[2],
+    mediaUrl: findImage('post-7'),
+    mediaType: 'image',
+    caption: 'My best co-worker.',
+    likes: 1023,
+    comments: [],
+    createdAt: '4d ago',
+  },
+  {
+    id: 'post-8',
+    author: users[0],
+    mediaUrl: findImage('post-8'),
+    mediaType: 'image',
+    caption: 'Pushing the limits.',
+    likes: 188,
+    comments: [],
+    createdAt: '4d ago',
+  },
+    {
+    id: 'post-9',
+    author: users[3],
+    mediaUrl: findImage('post-9'),
+    mediaType: 'image',
+    caption: 'Lines and shadows.',
+    likes: 341,
+    comments: [],
+    createdAt: '5d ago',
+  },
+    {
+    id: 'post-10',
+    author: users[4],
+    mediaUrl: findImage('post-10'),
+    mediaType: 'image',
+    caption: 'Late night coding session. #developerlife',
+    likes: 98,
+    comments: [],
+    createdAt: '5d ago',
+  }
+];

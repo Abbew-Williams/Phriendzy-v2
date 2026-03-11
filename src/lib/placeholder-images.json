@@ -1,3 +1,154 @@
 {
-  "placeholderImages": []
+  "placeholderImages": [
+    {
+      "id": "avatar-1",
+      "description": "User avatar 1",
+      "imageUrl": "https://picsum.photos/seed/avatar1/100/100",
+      "imageHint": "portrait person"
+    },
+    {
+      "id": "avatar-2",
+      "description": "User avatar 2",
+      "imageUrl": "https://picsum.photos/seed/avatar2/100/100",
+      "imageHint": "woman model"
+    },
+    {
+      "id": "avatar-3",
+      "description": "User avatar 3",
+      "imageUrl": "https://picsum.photos/seed/avatar3/100/100",
+      "imageHint": "man face"
+    },
+    {
+      "id": "avatar-4",
+      "description": "User avatar 4",
+      "imageUrl": "https://picsum.photos/seed/avatar4/100/100",
+      "imageHint": "person smiling"
+    },
+    {
+      "id": "avatar-5",
+      "description": "User avatar 5",
+      "imageUrl": "https://picsum.photos/seed/avatar5/100/100",
+      "imageHint": "woman smiling"
+    },
+    {
+      "id": "post-1",
+      "description": "Post image 1",
+      "imageUrl": "https://picsum.photos/seed/post1/600/800",
+      "imageHint": "city night"
+    },
+    {
+      "id": "post-2",
+      "description": "Post image 2",
+      "imageUrl": "https://picsum.photos/seed/post2/600/750",
+      "imageHint": "nature landscape"
+    },
+    {
+      "id": "post-3",
+      "description": "Post image 3",
+      "imageUrl": "https://picsum.photos/seed/post3/600/600",
+      "imageHint": "abstract art"
+    },
+    {
+      "id": "post-4",
+      "description": "Post image 4",
+      "imageUrl": "https://picsum.photos/seed/post4/600/900",
+      "imageHint": "fashion model"
+    },
+    {
+      "id": "post-5",
+      "description": "Post image 5",
+      "imageUrl": "https://picsum.photos/seed/post5/600/700",
+      "imageHint": "food delicious"
+    },
+    {
+      "id": "post-6",
+      "description": "Post image 6",
+      "imageUrl": "https://picsum.photos/seed/post6/800/600",
+      "imageHint": "travel destination"
+    },
+    {
+      "id": "post-7",
+      "description": "Post image 7",
+      "imageUrl": "https://picsum.photos/seed/post7/600/800",
+      "imageHint": "animal pet"
+    },
+    {
+      "id": "post-8",
+      "description": "Post image 8",
+      "imageUrl": "https://picsum.photos/seed/post8/700/800",
+      "imageHint": "sports action"
+    },
+    {
+      "id": "post-9",
+      "description": "Post image 9",
+      "imageUrl": "https://picsum.photos/seed/post9/800/800",
+      "imageHint": "architecture building"
+    },
+    {
+      "id": "post-10",
+      "description": "Post image 10",
+      "imageUrl": "https://picsum.photos/seed/post10/600/750",
+      "imageHint": "technology code"
+    },
+    {
+      "id": "post-11",
+      "description": "Post image 11",
+      "imageUrl": "https://picsum.photos/seed/post11/600/400",
+      "imageHint": "beach summer"
+    },
+    {
+      "id": "post-12",
+      "description": "Post image 12",
+      "imageUrl": "https://picsum.photos/seed/post12/600/800",
+      "imageHint": "mountain hiking"
+    },
+    {
+      "id": "post-13",
+      "description": "Post image 13",
+      "imageUrl": "https://picsum.photos/seed/post13/600/600",
+      "imageHint": "concert music"
+    },
+    {
+      "id": "post-14",
+      "description": "Post image 14",
+      "imageUrl": "https://picsum.photos/seed/post14/600/900",
+      "imageHint": "street style"
+    },
+    {
+      "id": "post-15",
+      "description": "Post image 15",
+      "imageUrl": "https://picsum.photos/seed/post15/600/700",
+      "imageHint": "coffee cafe"
+    },
+    {
+      "id": "post-16",
+      "description": "Post image 16",
+      "imageUrl": "https://picsum.photos/seed/post16/800/600",
+      "imageHint": "car automotive"
+    },
+    {
+      "id": "post-17",
+      "description": "Post image 17",
+      "imageUrl": "https://picsum.photos/seed/post17/600/800",
+      "imageHint": "wildlife nature"
+    },
+    {
+      "id": "post-18",
+      "description": "Post image 18",
+      "imageUrl": "https://picsum.photos/seed/post18/700/800",
+      "imageHint": "fitness gym"
+    },
+    {
+      "id": "post-19",
+      "description": "Post image 19",
+      "imageUrl": "https://picsum.photos/seed/post19/800/800",
+      "imageHint": "modern interior"
+    },
+    {
+      "id": "post-20",
+      "description": "Post image 20",
+      "imageUrl": "https://picsum.photos/seed/post20/600/750",
+      "imageHint": "gaming setup"
+    }
+  ]
 }
