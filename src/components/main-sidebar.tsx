@@ -59,18 +59,16 @@ export function MainSidebar() {
         <SidebarMenu>
           {menuItems.map(({ href, label, icon: Icon, tooltip }) => (
             <SidebarMenuItem key={href}>
-              <Link href={href} passHref legacyBehavior>
-                <SidebarMenuButton
-                  asChild
-                  isActive={pathname === href}
-                  tooltip={{ children: tooltip, side: 'right' }}
-                >
-                  <a>
-                    <Icon />
-                    <span>{label}</span>
-                  </a>
-                </SidebarMenuButton>
-              </Link>
+              <SidebarMenuButton
+                asChild
+                isActive={pathname === href}
+                tooltip={{ children: tooltip, side: 'right' }}
+              >
+                <Link href={href}>
+                  <Icon />
+                  <span>{label}</span>
+                </Link>
+              </SidebarMenuButton>
             </SidebarMenuItem>
           ))}
         </SidebarMenu>
