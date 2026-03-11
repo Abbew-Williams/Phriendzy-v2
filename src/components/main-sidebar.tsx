@@ -7,10 +7,11 @@ import {
   Compass,
   Bell,
   MessageCircle,
-  PlusSquare,
+  LogOut,
   Settings,
   User,
 } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 
 import {
   SidebarContent,
@@ -24,7 +25,8 @@ import {
 import { Logo, LogoIcon } from '@/components/logo';
 import { UserAvatar } from '@/components/user-avatar';
 import { Button } from '@/components/ui/button';
-import { currentUser } from '@/lib/data';
+import { useUser } from '@/firebase';
+import { signOut } from '@/firebase/auth/auth';
 import { cn } from '@/lib/utils';
 import {
   DropdownMenu,
@@ -33,6 +35,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from './ui/dropdown-menu';
+import { Skeleton } from './ui/skeleton';
 
 const menuItems = [
   { href: '/home', label: 'Home', icon: Home, tooltip: 'Home' },
@@ -42,11 +45,31 @@ const menuItems = [
   { href: '/profile', label: 'Profile', icon: User, tooltip: 'Profile' },
 ];
 
+const mockUser = {
+    id: 'temp-user',
+    uid: 'temp-user',
+    username: 'Guest',
+    name: 'Guest User',
+    avatarUrl: '',
+    bio: '',
+    followersCount: 0,
+    followingCount: 0,
+};
+
 export function MainSidebar() {
   const pathname = usePathname();
+  const router = useRouter();
   const { state } = useSidebar();
+  const { appUser, loading } = useUser();
 
   const isCollapsed = state === 'collapsed';
+  
+  const handleLogout = async () => {
+    await signOut();
+    router.push('/login');
+  };
+  
+  const user = appUser || mockUser;
 
   return (
     <>
@@ -59,7 +82,7 @@ export function MainSidebar() {
         <SidebarMenu>
           {menuItems.map(({ href, label, icon: Icon, tooltip }) => (
             <SidebarMenuItem key={href}>
-              <SidebarMenuButton
+               <SidebarMenuButton
                 asChild
                 isActive={pathname === href}
                 tooltip={{ children: tooltip, side: 'right' }}
@@ -75,28 +98,45 @@ export function MainSidebar() {
       </SidebarContent>
       <SidebarFooter className="p-2">
          <div className={cn(isCollapsed && 'w-full flex justify-center')}>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className={cn("h-auto w-full justify-start p-2", isCollapsed && "w-auto")}>
-                  <UserAvatar user={currentUser} className="shrink-0" />
-                  <div className={cn("ml-2 flex flex-col items-start", isCollapsed && "hidden")}>
-                    <span className="font-medium">{currentUser.name}</span>
-                    <span className="text-xs text-muted-foreground">@{currentUser.username}</span>
-                  </div>
+            {loading ? (
+                <div className={cn("flex items-center p-2", isCollapsed && "w-auto justify-center")}>
+                    <Skeleton className="h-10 w-10 rounded-full" />
+                    {!isCollapsed && <div className="ml-2 space-y-2">
+                        <Skeleton className="h-4 w-24" />
+                        <Skeleton className="h-3 w-20" />
+                    </div>}
+                </div>
+            ) : appUser ? (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" className={cn("h-auto w-full justify-start p-2", isCollapsed && "w-auto")}>
+                      <UserAvatar user={user} className="shrink-0" />
+                      <div className={cn("ml-2 flex flex-col items-start", isCollapsed && "hidden")}>
+                        <span className="font-medium">{user.name}</span>
+                        <span className="text-xs text-muted-foreground">@{user.username}</span>
+                      </div>
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent side="right" align="start">
+                    <DropdownMenuItem asChild>
+                      <Link href="/profile">Profile</Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem>
+                        <Settings className="mr-2 h-4 w-4" />
+                        <span>Settings</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={handleLogout}>
+                        <LogOut className="mr-2 h-4 w-4" />
+                        <span>Log out</span>
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+            ) : (
+                <Button asChild className={cn(isCollapsed && "w-auto")}>
+                    <Link href="/login">Login</Link>
                 </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent side="right" align="start">
-                <DropdownMenuItem asChild>
-                  <Link href="/profile">Profile</Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem>
-                    <Settings className="mr-2 h-4 w-4" />
-                    <span>Settings</span>
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem>Log out</DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            )}
         </div>
       </SidebarFooter>
     </>

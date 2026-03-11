@@ -4,10 +4,10 @@ import { posts as mockPosts } from '@/lib/data';
 import { useEffect, useRef, useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { FullScreenPost } from '@/components/full-screen-post';
+import { useUser } from '@/firebase';
 
 export default function HomePage() {
-  // Mock user state. Will be replaced by Firebase auth.
-  const [user, setUser] = useState(null);
+  const { user } = useUser();
   const { toast } = useToast();
   const [posts, setPosts] = useState(mockPosts);
 
@@ -58,7 +58,7 @@ export default function HomePage() {
   }, [posts]);
 
   return (
-    <div className="w-full h-screen snap-y snap-mandatory overflow-y-scroll overflow-x-hidden md:max-w-screen-sm md:mx-auto md:h-full md:border-x">
+    <div className="w-full h-screen snap-y snap-mandatory overflow-y-scroll overflow-x-hidden md:max-w-full md:h-full md:border-x">
       {posts.map((post) => (
         <div
           key={post.id}

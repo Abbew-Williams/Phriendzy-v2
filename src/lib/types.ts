@@ -1,11 +1,14 @@
 export type User = {
-  id: string;
+  id: string; // Corresponds to uid in Firebase Auth
+  uid: string;
   username: string;
   name: string;
   avatarUrl: string;
   bio: string;
-  followers: number;
-  following: number;
+  followersCount: number;
+  followingCount: number;
+  firstName?: string;
+  lastName?: string;
 };
 
 export type Post = {

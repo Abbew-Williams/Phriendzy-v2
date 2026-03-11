@@ -2,6 +2,7 @@ import { MainSidebar } from '@/components/main-sidebar';
 import { Sidebar, SidebarProvider, SidebarInset } from '@/components/ui/sidebar';
 import { Toaster } from '@/components/ui/toaster';
 import { BottomNavBar } from '@/components/bottom-nav-bar';
+import { RightPanel } from '@/components/right-panel';
 
 export default function MainLayout({
   children,
@@ -10,16 +11,22 @@ export default function MainLayout({
 }) {
   return (
     <SidebarProvider>
-      {/* Sidebar for Desktop */}
-      <div className="hidden md:flex min-h-screen">
-        <Sidebar collapsible="icon" className="border-r border-border/50">
-          <MainSidebar />
-        </Sidebar>
-        <SidebarInset>
-          <main className="flex-1 bg-background">
+      <div className="md:grid md:grid-cols-[auto_1fr_320px] min-h-screen">
+        {/* Sidebar for Desktop */}
+        <div className="hidden md:flex">
+            <Sidebar collapsible="icon" className="border-r border-border/50">
+            <MainSidebar />
+            </Sidebar>
+        </div>
+
+        <main className="flex-1 bg-background">
             {children}
-          </main>
-        </SidebarInset>
+        </main>
+        
+        {/* Right Panel for Desktop */}
+        <div className="hidden md:block border-l border-border/50">
+            <RightPanel />
+        </div>
       </div>
       
       {/* Mobile layout */}

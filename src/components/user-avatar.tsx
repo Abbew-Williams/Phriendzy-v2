@@ -6,14 +6,24 @@ import { cn } from '@/lib/utils';
 import type { AvatarProps } from '@radix-ui/react-avatar';
 
 interface UserAvatarProps extends AvatarProps {
-  user: User;
+  user?: User | null;
 }
 
 export function UserAvatar({ user, className, ...props }: UserAvatarProps) {
+  if (!user) {
+    // Render a placeholder or null if user is not available
+    const fallback = 'G';
+     return (
+      <Avatar className={cn('h-8 w-8', className)} {...props}>
+        <AvatarFallback>{fallback}</AvatarFallback>
+      </Avatar>
+    );
+  }
+
   const fallback = user.name
-    .split(' ')
+    ?.split(' ')
     .map((n) => n[0])
-    .join('');
+    .join('') || user.username?.[0] || 'U';
 
   return (
     <Avatar className={cn('h-8 w-8', className)} {...props}>
