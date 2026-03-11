@@ -9,6 +9,7 @@ import {
   MessageCircle,
   PlusSquare,
   Settings,
+  User,
 } from 'lucide-react';
 
 import {
@@ -36,8 +37,9 @@ import {
 const menuItems = [
   { href: '/home', label: 'Home', icon: Home, tooltip: 'Home' },
   { href: '/explore', label: 'Explore', icon: Compass, tooltip: 'Explore' },
-  { href: '/notifications', label: 'Notifications', icon: Bell, tooltip: 'Notifications' },
   { href: '/messages', label: 'Messages', icon: MessageCircle, tooltip: 'Messages' },
+  { href: '/notifications', label: 'Notifications', icon: Bell, tooltip: 'Notifications' },
+  { href: '/profile', label: 'Profile', icon: User, tooltip: 'Profile' },
 ];
 
 export function MainSidebar() {

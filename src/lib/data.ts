@@ -57,8 +57,8 @@ export const posts: Post[] = [
   {
     id: 'post-1',
     author: users[1],
-    mediaUrl: findImage('post-1'),
-    mediaType: 'image',
+    mediaUrl: 'https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4',
+    mediaType: 'video',
     caption: 'Cyberpunk city nights are a different kind of magic.',
     likes: 234,
     comments: [
@@ -70,8 +70,8 @@ export const posts: Post[] = [
   {
     id: 'post-2',
     author: users[2],
-    mediaUrl: findImage('post-2'),
-    mediaType: 'image',
+    mediaUrl: 'https://storage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4',
+    mediaType: 'video',
     caption: 'Finding peace in nature\'s embrace. Perfect spot to meditate and create new sounds.',
     likes: 540,
     comments: [],
@@ -90,8 +90,8 @@ export const posts: Post[] = [
   {
     id: 'post-4',
     author: users[4],
-    mediaUrl: findImage('post-4'),
-    mediaType: 'image',
+    mediaUrl: 'https://storage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4',
+    mediaType: 'video',
     caption: 'Street style in the city that never sleeps.',
     likes: 890,
     comments: [
@@ -109,7 +109,7 @@ export const posts: Post[] = [
     comments: [],
     createdAt: '3d ago',
   },
-    {
+  {
     id: 'post-6',
     author: users[1],
     mediaUrl: findImage('post-6'),
@@ -132,8 +132,8 @@ export const posts: Post[] = [
   {
     id: 'post-8',
     author: users[0],
-    mediaUrl: findImage('post-8'),
-    mediaType: 'image',
+    mediaUrl: 'https://storage.googleapis.com/gtv-videos-bucket/sample/TearsOfSteel.mp4',
+    mediaType: 'video',
     caption: 'Pushing the limits.',
     likes: 188,
     comments: [],

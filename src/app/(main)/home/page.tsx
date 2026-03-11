@@ -1,18 +1,73 @@
-import { PostCard } from '@/components/post-card';
-import { posts } from '@/lib/data';
+'use client';
+
+import { posts as mockPosts } from '@/lib/data';
+import { useEffect, useRef, useState } from 'react';
+import { useToast } from '@/hooks/use-toast';
+import { FullScreenPost } from '@/components/full-screen-post';
 
 export default function HomePage() {
+  // Mock user state. Will be replaced by Firebase auth.
+  const [user, setUser] = useState(null);
+  const { toast } = useToast();
+  const [posts, setPosts] = useState(mockPosts);
+
+  const handleInteraction = () => {
+    if (!user) {
+      toast({
+        title: 'Login Required',
+        description: 'Login or create an account to interact with posts.',
+        variant: 'destructive',
+      });
+      // Here you would typically open a login modal/page
+      return false;
+    }
+    return true;
+  };
+
+  const observer = useRef<IntersectionObserver | null>(null);
+
+  useEffect(() => {
+    // Ensure this runs only in the browser
+    if (typeof window === 'undefined') return;
+
+    observer.current = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          const videoElement = (entry.target as HTMLElement).querySelector('video');
+          if (entry.isIntersecting) {
+            videoElement?.play().catch(() => {});
+          } else {
+            videoElement?.pause();
+          }
+        });
+      },
+      { threshold: 0.5 } // Play when 50% of the post is visible
+    );
+
+    const postElements = document.querySelectorAll('[data-post-id]');
+    const currentObserver = observer.current;
+    postElements.forEach((el) => currentObserver.observe(el));
+
+    return () => {
+      postElements.forEach((el) => {
+        if (currentObserver) {
+          currentObserver.unobserve(el);
+        }
+      });
+    };
+  }, [posts]);
+
   return (
-    <div className="w-full h-full">
-      <div className="container mx-auto max-w-screen-sm px-0 md:px-4 py-8">
-        <div className="flex justify-center">
-          <div className="w-full max-w-lg space-y-8">
-            {posts.map((post) => (
-              <PostCard key={post.id} post={post} />
-            ))}
-          </div>
+    <div className="w-full h-screen snap-y snap-mandatory overflow-y-scroll overflow-x-hidden md:max-w-screen-sm md:mx-auto md:h-full md:border-x">
+      {posts.map((post) => (
+        <div
+          key={post.id}
+          data-post-id={post.id}
+          className="h-full w-full snap-start flex items-center justify-center relative bg-black"
+        >
+          <FullScreenPost post={post} onInteraction={handleInteraction} />
         </div>
-      </div>
+      ))}
     </div>
   );
 }
