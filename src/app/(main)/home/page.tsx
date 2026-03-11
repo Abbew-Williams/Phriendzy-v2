@@ -58,7 +58,7 @@ export default function HomePage() {
   }, [posts]);
 
   return (
-    <div className="w-full h-screen snap-y snap-mandatory overflow-y-scroll overflow-x-hidden md:max-w-full md:h-full md:border-x">
+    <div className="w-full h-screen snap-y snap-mandatory overflow-y-auto overflow-x-hidden md:h-full md:mx-auto md:max-w-md md:border-x">
       {posts.map((post) => (
         <div
           key={post.id}
