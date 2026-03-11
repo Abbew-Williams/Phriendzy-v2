@@ -100,7 +100,7 @@ export function FullScreenPost({ post, onInteraction }: FullScreenPostProps) {
          <Heart className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-24 h-24 text-white fill-white animate-in fade-in zoom-in" />
       )}
 
-      <div className="absolute bottom-0 left-0 w-full p-4 bg-gradient-to-t from-black/60 to-transparent text-white">
+      <div className="absolute bottom-16 md:bottom-0 left-0 w-full p-4 bg-gradient-to-t from-black/60 to-transparent text-white">
         <div className="flex items-end">
           <div className="flex-1 min-w-0 pr-4">
             <Link href={`/profile/${post.author.username}`} className="font-bold hover:underline block truncate">

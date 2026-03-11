@@ -1,5 +1,5 @@
 import { MainSidebar } from '@/components/main-sidebar';
-import { Sidebar, SidebarProvider, SidebarInset } from '@/components/ui/sidebar';
+import { Sidebar, SidebarProvider } from '@/components/ui/sidebar';
 import { Toaster } from '@/components/ui/toaster';
 import { BottomNavBar } from '@/components/bottom-nav-bar';
 import { RightPanel } from '@/components/right-panel';
@@ -19,22 +19,18 @@ export default function MainLayout({
             </Sidebar>
         </div>
 
-        <main className="flex-1 bg-background">
+        <main>
             {children}
         </main>
         
         {/* Right Panel for Desktop */}
-        <div className="hidden md:block border-l border-border/50">
+        <aside className="hidden md:block border-l border-border/50">
             <RightPanel />
-        </div>
+        </aside>
       </div>
       
-      {/* Mobile layout */}
-      <div className="md:hidden">
-        <main className="bg-black">{children}</main>
-        <BottomNavBar />
-      </div>
-
+      {/* Mobile nav and toaster */}
+      <BottomNavBar />
       <Toaster />
     </SidebarProvider>
   );
