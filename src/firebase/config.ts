@@ -1,11 +1,11 @@
-// IMPORTANT: Replace with your actual Firebase project configuration
-// You can get this from the Firebase console for your web app.
-// I have filled in your project ID, but you still need to add the other values.
+// Your web app's Firebase configuration
+// For Firebase JS SDK v7.20.0 and later, measurementId is optional
 export const firebaseConfig = {
-  apiKey: "YOUR_API_KEY", // Get this from Firebase console
-  authDomain: "phriendzydb.firebaseapp.com", // Usually <projectId>.firebaseapp.com
+  apiKey: "AIzaSyAw9G37mI5wT0eEOez1PFyH1LcBa7V4nOA",
+  authDomain: "phriendzydb.firebaseapp.com",
   projectId: "phriendzydb",
-  storageBucket: "phriendzydb.appspot.com", // Usually <projectId>.appspot.com
-  messagingSenderId: "426881023945", // Get this from Firebase console
-  appId: "YOUR_APP_ID" // Get this from Firebase console
+  storageBucket: "phriendzydb.firebasestorage.app",
+  messagingSenderId: "426881023945",
+  appId: "1:426881023945:web:577554cfb9f772e6b5f218",
+  measurementId: "G-ZKJ57V372D"
 };
