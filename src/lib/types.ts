@@ -9,6 +9,7 @@ export type User = {
   followingCount: number;
   firstName?: string;
   lastName?: string;
+  usernameLastChanged?: any; // Can be a Firestore Timestamp
 };
 
 export type Post = {

@@ -13,7 +13,8 @@
         "avatarUrl": { "type": "string", "format": "uri", "description": "URL for the user's avatar image." },
         "bio": { "type": "string", "description": "A short bio for the user." },
         "followersCount": { "type": "number", "description": "Number of followers." },
-        "followingCount": { "type": "number", "description": "Number of users this user is following." }
+        "followingCount": { "type": "number", "description": "Number of users this user is following." },
+        "usernameLastChanged": { "type": "string", "format": "date-time", "description": "The last time the username was changed." }
       },
       "required": ["uid", "username", "email"]
     },

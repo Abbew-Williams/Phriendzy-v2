@@ -9,10 +9,11 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { UserAvatar } from '@/components/user-avatar';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from '@/components/ui/form';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
+import { differenceInDays, parseISO } from 'date-fns';
 
 const profileFormSchema = z.object({
   username: z.string().min(3, 'Username must be at least 3 characters.'),
@@ -21,11 +22,33 @@ const profileFormSchema = z.object({
   bio: z.string().max(150, 'Bio cannot be more than 150 characters.').optional(),
 });
 
+// A mock function to simulate checking username availability
+const checkUsernameAvailability = async (username: string): Promise<{ available: boolean; suggestions: string[] }> => {
+  console.log(`Checking username: ${username}`);
+  await new Promise(resolve => setTimeout(resolve, 500)); // Simulate network delay
+  if (['pixelperfect', 'soundwave', 'vibemaster'].includes(username.toLowerCase())) {
+    return { available: false, suggestions: [`${username}123`, `${username}_`, `the_${username}`] };
+  }
+  return { available: true, suggestions: [] };
+};
+
+
 export default function EditProfilePage() {
   const { appUser, loading } = useUser();
   const { toast } = useToast();
   const router = useRouter();
   const [isSaving, setIsSaving] = useState(false);
+
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Username availability state
+  const [usernameStatus, setUsernameStatus] = useState<'idle' | 'checking' | 'available' | 'taken'>('idle');
+  const [usernameSuggestions, setUsernameSuggestions] = useState<string[]>([]);
+  const [isUsernameFieldDisabled, setIsUsernameFieldDisabled] = useState(true);
+  const [daysUntilUsernameChange, setDaysUntilUsernameChange] = useState(0);
+
 
   const form = useForm<z.infer<typeof profileFormSchema>>({
     resolver: zodResolver(profileFormSchema),
@@ -35,8 +58,11 @@ export default function EditProfilePage() {
       lastName: '',
       bio: '',
     },
+    mode: 'onChange',
   });
   
+  const watchedUsername = form.watch('username');
+
   useEffect(() => {
     if (appUser) {
       form.reset({
@@ -45,15 +71,95 @@ export default function EditProfilePage() {
         lastName: appUser.lastName || '',
         bio: appUser.bio || '',
       });
+      setAvatarPreview(appUser.avatarUrl);
+
+      // Username change restriction logic
+      if (appUser.usernameLastChanged) {
+        // The date from firestore might be a Timestamp object, convert it to Date if so
+        const lastChangedDate = typeof appUser.usernameLastChanged.toDate === 'function' 
+          ? appUser.usernameLastChanged.toDate() 
+          : parseISO(appUser.usernameLastChanged as any);
+        
+        const daysSinceChange = differenceInDays(new Date(), lastChangedDate);
+        const daysRemaining = 7 - daysSinceChange;
+        
+        if (daysRemaining > 0) {
+          setIsUsernameFieldDisabled(true);
+          setDaysUntilUsernameChange(daysRemaining);
+        } else {
+          setIsUsernameFieldDisabled(false);
+        }
+      } else {
+        // If it's never been changed, they can change it.
+        setIsUsernameFieldDisabled(false);
+      }
     }
   }, [appUser, form]);
 
+  // Debounced username check
+  useEffect(() => {
+    if (!appUser || watchedUsername === appUser.username) {
+        setUsernameStatus('idle');
+        return;
+    }
+
+    const handler = setTimeout(async () => {
+      if (watchedUsername && watchedUsername.length >= 3) {
+        setUsernameStatus('checking');
+        const { available, suggestions } = await checkUsernameAvailability(watchedUsername);
+        setUsernameStatus(available ? 'available' : 'taken');
+        setUsernameSuggestions(suggestions);
+      } else {
+        setUsernameStatus('idle');
+      }
+    }, 500);
+
+    return () => {
+      clearTimeout(handler);
+    };
+  }, [watchedUsername, appUser]);
+
+
+  const handleAvatarChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      setAvatarFile(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setAvatarPreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
 
   const onSubmit = async (values: z.infer<typeof profileFormSchema>) => {
-    setIsSaving(true);
-    console.log('Saving profile data:', values);
+    if (usernameStatus === 'taken') {
+        toast({
+            title: 'Username is taken',
+            description: 'Please choose another username.',
+            variant: 'destructive',
+        });
+        return;
+    }
 
-    // TODO: Implement actual Firestore update logic here
+    setIsSaving(true);
+
+    // TODO: Implement actual Firestore update and Firebase Storage upload logic
+    if (avatarFile) {
+        console.log('Uploading new avatar:', avatarFile.name);
+        // const newAvatarUrl = await uploadProfilePicture(avatarFile, appUser.uid);
+        // Then update the user document with the new URL
+    }
+
+    const usernameChanged = values.username !== appUser?.username;
+    const updateData: any = { ...values };
+
+    if(usernameChanged) {
+        // TODO: This should be a serverTimestamp() on actual implementation
+        updateData.usernameLastChanged = new Date().toISOString();
+    }
+
+    console.log('Saving profile data:', updateData);
     await new Promise(resolve => setTimeout(resolve, 1500)); // Simulate save
 
     toast({
@@ -67,7 +173,7 @@ export default function EditProfilePage() {
   if (loading || !appUser) {
     return (
       <div className="container mx-auto max-w-2xl p-4 sm:p-6 lg:p-8 space-y-8">
-        <Skeleton className="h-8 w-48" />
+        <h1 className="font-headline text-3xl font-bold tracking-tight">Edit Profile</h1>
         <div className="flex items-center gap-4">
           <Skeleton className="w-20 h-20 rounded-full" />
           <div className="space-y-2">
@@ -85,16 +191,45 @@ export default function EditProfilePage() {
     );
   }
 
+  const renderUsernameFeedback = () => {
+    if (isUsernameFieldDisabled) {
+        return <FormDescription>You can change your username again in {daysUntilUsernameChange} day{daysUntilUsernameChange > 1 ? 's' : ''}.</FormDescription>
+    }
+    switch (usernameStatus) {
+      case 'checking':
+        return <FormDescription>Checking...</FormDescription>;
+      case 'available':
+        return <p className="text-sm font-medium text-green-500">Username is available!</p>;
+      case 'taken':
+        return (
+          <div>
+            <FormMessage>Username is already taken.</FormMessage>
+            {usernameSuggestions.length > 0 && (
+              <FormDescription>
+                Suggestions: {usernameSuggestions.join(', ')}
+              </FormDescription>
+            )}
+          </div>
+        );
+      case 'idle':
+      default:
+        return <FormDescription>Your unique username on Phriendzy.</FormDescription>;
+    }
+  };
+
   return (
     <div className="container mx-auto max-w-2xl p-4 sm:p-6 lg:p-8">
       <h1 className="font-headline text-3xl font-bold tracking-tight mb-8">Edit Profile</h1>
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
           <div className="flex items-center gap-6">
-            <UserAvatar user={appUser} className="w-20 h-20" />
+            <UserAvatar user={{ ...appUser, avatarUrl: avatarPreview || appUser.avatarUrl }} className="w-20 h-20" />
             <div>
               <h2 className="text-xl font-semibold">{appUser.username}</h2>
-              <Button variant="link" className="p-0 h-auto text-primary">Change profile photo</Button>
+              <Button type="button" variant="link" className="p-0 h-auto text-primary" onClick={() => fileInputRef.current?.click()}>
+                Change profile photo
+              </Button>
+              <input type="file" ref={fileInputRef} onChange={handleAvatarChange} className="hidden" accept="image/png, image/jpeg, image/gif" />
             </div>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -132,9 +267,9 @@ export default function EditProfilePage() {
               <FormItem>
                 <FormLabel>Username</FormLabel>
                 <FormControl>
-                  <Input {...field} />
+                  <Input {...field} disabled={isUsernameFieldDisabled} />
                 </FormControl>
-                <FormMessage />
+                {renderUsernameFeedback()}
               </FormItem>
             )}
           />
