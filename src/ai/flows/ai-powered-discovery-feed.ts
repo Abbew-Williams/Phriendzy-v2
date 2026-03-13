@@ -56,8 +56,7 @@ Return only the list of recommended post IDs in the specified JSON format.`,
 });
 
 export async function aiPoweredDiscoveryFeed(input: AIPoweredDiscoveryFeedInput): Promise<AIPoweredDiscoveryFeedOutput> {
-  const {output} = await aiPoweredDiscoveryFeedFlow(input);
-  return output!;
+  return aiPoweredDiscoveryFeedFlow(input);
 }
 
 const aiPoweredDiscoveryFeedFlow = ai.defineFlow(

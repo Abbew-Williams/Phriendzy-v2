@@ -20,7 +20,7 @@ export default async function ExplorePage() {
   const postMap = new Map(allPosts.map(p => [p.id, p]));
 
   // Get recommended posts, preserving order from the AI
-  let recommendedPosts = recommendations.recommendedPostIds
+  let recommendedPosts = (recommendations?.recommendedPostIds || [])
     .map(id => postMap.get(id))
     .filter(Boolean);
 
