@@ -5,11 +5,11 @@ import { useRouter } from 'next/navigation';
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
+import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Logo } from "@/components/logo";
 import { useToast } from "@/hooks/use-toast";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
@@ -23,6 +23,8 @@ const formSchema = z.object({
 export default function LoginPage() {
   const router = useRouter();
   const { toast } = useToast();
+  const [isLoading, setIsLoading] = useState(false);
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -33,6 +35,7 @@ export default function LoginPage() {
   });
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
+    setIsLoading(true);
     const { email, password } = values;
     const { error } = await signInWithEmail(email, password);
 
@@ -49,9 +52,11 @@ export default function LoginPage() {
       });
       router.push('/home');
     }
+    setIsLoading(false);
   };
 
   const handleGoogleSignIn = async () => {
+    setIsGoogleLoading(true);
     const { error } = await signInWithGoogle();
     if (error) {
        toast({
@@ -65,6 +70,7 @@ export default function LoginPage() {
       });
       router.push('/home');
     }
+    setIsGoogleLoading(false);
   };
 
   return (
@@ -109,7 +115,7 @@ export default function LoginPage() {
                   </FormItem>
                 )}
               />
-              <Button type="submit" className="w-full">
+              <Button type="submit" className="w-full" loading={isLoading}>
                 Login
               </Button>
             </form>
@@ -124,7 +130,7 @@ export default function LoginPage() {
               </span>
             </div>
           </div>
-          <Button variant="outline" className="w-full" onClick={handleGoogleSignIn}>
+          <Button variant="outline" className="w-full" onClick={handleGoogleSignIn} loading={isGoogleLoading}>
             Login with Google
           </Button>
           <div className="mt-4 text-center text-sm">

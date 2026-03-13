@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
+import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -26,6 +27,8 @@ const formSchema = z.object({
 export default function SignupPage() {
   const router = useRouter();
   const { toast } = useToast();
+  const [isLoading, setIsLoading] = useState(false);
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -39,6 +42,7 @@ export default function SignupPage() {
   });
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
+    setIsLoading(true);
     const { error } = await signUpWithEmail(values);
 
     if (error) {
@@ -54,9 +58,11 @@ export default function SignupPage() {
       });
       router.push('/home');
     }
+    setIsLoading(false);
   };
 
   const handleGoogleSignIn = async () => {
+    setIsGoogleLoading(true);
     const { error } = await signInWithGoogle();
     if (error) {
        toast({
@@ -70,6 +76,7 @@ export default function SignupPage() {
       });
       router.push('/home');
     }
+    setIsGoogleLoading(false);
   };
 
   return (
@@ -150,7 +157,7 @@ export default function SignupPage() {
                     </FormItem>
                   )}
                 />
-              <Button type="submit" className="w-full">
+              <Button type="submit" className="w-full" loading={isLoading}>
                 Create an account
               </Button>
             </form>
@@ -167,7 +174,7 @@ export default function SignupPage() {
             </div>
           </div>
 
-          <Button variant="outline" className="w-full" onClick={handleGoogleSignIn}>
+          <Button variant="outline" className="w-full" onClick={handleGoogleSignIn} loading={isGoogleLoading}>
             Sign up with Google
           </Button>
 

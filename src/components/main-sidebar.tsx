@@ -10,8 +10,10 @@ import {
   LogOut,
   Settings,
   User,
+  Loader2,
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { useState } from 'react';
 
 import {
   SidebarContent,
@@ -61,10 +63,12 @@ export function MainSidebar() {
   const router = useRouter();
   const { state } = useSidebar();
   const { appUser, loading } = useUser();
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   const isCollapsed = state === 'collapsed';
   
   const handleLogout = async () => {
+    setIsLoggingOut(true);
     await signOut();
     router.push('/login');
   };
@@ -126,8 +130,12 @@ export function MainSidebar() {
                         <span>Settings</span>
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
-                    <DropdownMenuItem onClick={handleLogout}>
-                        <LogOut className="mr-2 h-4 w-4" />
+                    <DropdownMenuItem onClick={handleLogout} disabled={isLoggingOut}>
+                        {isLoggingOut ? (
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        ) : (
+                            <LogOut className="mr-2 h-4 w-4" />
+                        )}
                         <span>Log out</span>
                     </DropdownMenuItem>
                   </DropdownMenuContent>
