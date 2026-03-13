@@ -38,7 +38,7 @@ const aiPoweredDiscoveryFeedPrompt = ai.definePrompt({
   name: 'aiPoweredDiscoveryFeedPrompt',
   input: {schema: AIPoweredDiscoveryFeedInputSchema},
   output: {schema: AIPoweredDiscoveryFeedOutputSchema},
-  prompt: `You are an AI-powered content recommendation engine for a social media platform called Vibeflow. Your task is to analyze user activity and preferences to suggest new and engaging videos and photos.
+  prompt: `You are an AI-powered content recommendation engine for a social media platform called Phriendzy. Your task is to analyze user activity and preferences to suggest new and engaging videos and photos.
 
 Here is the user's interaction data:
 - User ID: {{{userId}}}

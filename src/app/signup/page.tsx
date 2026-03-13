@@ -50,7 +50,7 @@ export default function SignupPage() {
     } else {
       toast({
         title: "Account Created!",
-        description: "Welcome to Vibeflow.",
+        description: "Welcome to Phriendzy.",
       });
       router.push('/home');
     }

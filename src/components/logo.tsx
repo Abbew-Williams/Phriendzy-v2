@@ -18,7 +18,7 @@ export function Logo(props: SVGProps<SVGSVGElement>) {
         fill="currentColor"
         className="font-headline"
       >
-        Vibeflow
+        Phriendzy
       </text>
     </svg>
   );
