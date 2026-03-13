@@ -11,6 +11,7 @@ import {
   Settings,
   User,
   Loader2,
+  PlusSquare,
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
@@ -42,6 +43,7 @@ import { Skeleton } from './ui/skeleton';
 const menuItems = [
   { href: '/home', label: 'Home', icon: Home, tooltip: 'Home' },
   { href: '/explore', label: 'Explore', icon: Compass, tooltip: 'Explore' },
+  { href: '/create', label: 'Create', icon: PlusSquare, tooltip: 'Create' },
   { href: '/messages', label: 'Messages', icon: MessageCircle, tooltip: 'Messages' },
   { href: '/notifications', label: 'Notifications', icon: Bell, tooltip: 'Notifications' },
   { href: '/profile', label: 'Profile', icon: User, tooltip: 'Profile' },

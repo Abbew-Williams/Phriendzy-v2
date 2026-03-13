@@ -5,11 +5,12 @@ import { useUser } from "@/firebase";
 import { posts } from "@/lib/data";
 import { UserAvatar } from "@/components/user-avatar";
 import { Button } from "@/components/ui/button";
-import { Settings } from "lucide-react";
+import { Settings, PlusSquare } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
+import Link from "next/link";
 
 export default function ProfilePage() {
   const { appUser, loading, user: authUser } = useUser();
@@ -56,9 +57,18 @@ export default function ProfilePage() {
         <div className="flex-1 text-center sm:text-left">
           <div className="flex items-center justify-center sm:justify-start gap-4 mb-4">
             <h1 className="font-headline text-2xl font-medium">{appUser.username}</h1>
-            <Button variant="secondary">Edit Profile</Button>
-            <Button variant="ghost" size="icon">
-              <Settings className="w-5 h-5" />
+            <Button asChild variant="secondary">
+              <Link href="/profile/edit">Edit Profile</Link>
+            </Button>
+            <Button asChild variant="ghost" size="icon">
+              <Link href="/settings">
+                <Settings className="w-5 h-5" />
+              </Link>
+            </Button>
+            <Button asChild variant="ghost" size="icon">
+              <Link href="/create">
+                <PlusSquare className="w-5 h-5" />
+              </Link>
             </Button>
           </div>
           <div className="flex justify-center sm:justify-start gap-6 mb-4">

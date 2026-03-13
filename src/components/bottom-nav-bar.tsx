@@ -2,14 +2,14 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, MessageCircle, Bell, User, Compass } from 'lucide-react';
+import { Home, MessageCircle, User, Compass, PlusSquare } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const navItems = [
   { href: '/home', icon: Home, label: 'Home' },
   { href: '/explore', icon: Compass, label: 'Explore' },
+  { href: '/create', icon: PlusSquare, label: 'Create' },
   { href: '/messages', icon: MessageCircle, label: 'Messages' },
-  { href: '/notifications', icon: Bell, label: 'Notifications' },
   { href: '/profile', icon: User, label: 'Profile' },
 ];
 
@@ -25,7 +25,9 @@ export function BottomNavBar() {
             href={item.href}
             className={cn(
               'inline-flex flex-col items-center justify-center px-5 hover:bg-accent/50 transition-colors group',
-              pathname === item.href
+              item.href === '/create' 
+                ? 'text-primary' 
+                : pathname === item.href
                 ? 'text-primary'
                 : 'text-muted-foreground'
             )}
