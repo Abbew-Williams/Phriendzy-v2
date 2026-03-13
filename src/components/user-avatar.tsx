@@ -20,10 +20,10 @@ export function UserAvatar({ user, className, ...props }: UserAvatarProps) {
     );
   }
 
-  const fallback = user.name
-    ?.split(' ')
-    .map((n) => n[0])
-    .join('') || user.username?.[0] || 'U';
+  const fallback =
+    `${user.firstName?.[0] || ''}${user.lastName?.[0] || ''}`.trim() ||
+    user.username?.[0] ||
+    'U';
 
   return (
     <Avatar className={cn('h-8 w-8', className)} {...props}>

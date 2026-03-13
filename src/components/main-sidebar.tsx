@@ -53,7 +53,8 @@ const mockUser = {
     id: 'temp-user',
     uid: 'temp-user',
     username: 'Guest',
-    name: 'Guest User',
+    firstName: 'Guest',
+    lastName: 'User',
     avatarUrl: '',
     bio: '',
     followersCount: 0,
@@ -76,6 +77,7 @@ export function MainSidebar() {
   };
   
   const user = appUser || mockUser;
+  const userName = `${user.firstName || ''} ${user.lastName || ''}`.trim();
 
   return (
     <>
@@ -118,7 +120,7 @@ export function MainSidebar() {
                     <Button variant="ghost" className={cn("h-auto w-full justify-start p-2", isCollapsed && "w-auto")}>
                       <UserAvatar user={user} className="shrink-0" />
                       <div className={cn("ml-2 flex flex-col items-start", isCollapsed && "hidden")}>
-                        <span className="font-medium">{user.name}</span>
+                        <span className="font-medium">{userName}</span>
                         <span className="text-xs text-muted-foreground">@{user.username}</span>
                       </div>
                     </Button>

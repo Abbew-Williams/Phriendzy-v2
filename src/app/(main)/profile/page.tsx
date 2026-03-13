@@ -49,6 +49,7 @@ export default function ProfilePage() {
 
   // TODO: Fetch user's posts from firestore
   const userPosts = posts.filter(p => p.author.id === appUser.id);
+  const userName = `${appUser.firstName || ''} ${appUser.lastName || ''}`.trim();
 
   return (
     <div className="container mx-auto max-w-4xl p-4 sm:p-6 lg:p-8">
@@ -77,7 +78,7 @@ export default function ProfilePage() {
             <div><span className="font-bold">{appUser.followingCount}</span> following</div>
           </div>
           <div>
-            <h2 className="font-bold">{appUser.name}</h2>
+            <h2 className="font-bold">{userName}</h2>
             <p className="text-muted-foreground">{appUser.bio}</p>
           </div>
         </div>

@@ -14,6 +14,9 @@ import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState, useRef } from 'react';
 import { differenceInDays, parseISO } from 'date-fns';
+import { serverTimestamp } from 'firebase/firestore';
+import { updateUserProfile } from '@/firebase/firestore/users';
+import { uploadFile } from '@/firebase/storage';
 
 const profileFormSchema = z.object({
   username: z.string().min(3, 'Username must be at least 3 characters.'),
@@ -85,7 +88,7 @@ export default function EditProfilePage() {
         
         if (daysRemaining > 0) {
           setIsUsernameFieldDisabled(true);
-          setDaysUntilUsernameChange(daysRemaining);
+          setDaysUntilUsernameChange(Math.ceil(daysRemaining));
         } else {
           setIsUsernameFieldDisabled(false);
         }
@@ -133,6 +136,8 @@ export default function EditProfilePage() {
   };
 
   const onSubmit = async (values: z.infer<typeof profileFormSchema>) => {
+    if (!appUser) return;
+
     if (usernameStatus === 'taken') {
         toast({
             title: 'Username is taken',
@@ -144,30 +149,40 @@ export default function EditProfilePage() {
 
     setIsSaving(true);
 
-    // TODO: Implement actual Firestore update and Firebase Storage upload logic
-    if (avatarFile) {
-        console.log('Uploading new avatar:', avatarFile.name);
-        // const newAvatarUrl = await uploadProfilePicture(avatarFile, appUser.uid);
-        // Then update the user document with the new URL
+    try {
+        let newAvatarUrl = appUser.avatarUrl;
+        if (avatarFile) {
+            const filePath = `avatars/${appUser.uid}/${Date.now()}_${avatarFile.name}`;
+            newAvatarUrl = await uploadFile(avatarFile, filePath);
+        }
+        
+        const usernameChanged = values.username !== appUser.username;
+        const updateData: any = {
+            ...values,
+            avatarUrl: newAvatarUrl,
+        };
+        
+        if (usernameChanged) {
+            updateData.usernameLastChanged = serverTimestamp();
+        }
+
+        await updateUserProfile(appUser.uid, updateData);
+
+        toast({
+            title: 'Profile Updated',
+            description: 'Your changes have been saved.',
+        });
+        router.push('/profile');
+    } catch (error) {
+        console.error("Error updating profile:", error);
+        toast({
+            title: 'Update Failed',
+            description: 'Could not save your profile. Please try again.',
+            variant: 'destructive',
+        });
+    } finally {
+        setIsSaving(false);
     }
-
-    const usernameChanged = values.username !== appUser?.username;
-    const updateData: any = { ...values };
-
-    if(usernameChanged) {
-        // TODO: This should be a serverTimestamp() on actual implementation
-        updateData.usernameLastChanged = new Date().toISOString();
-    }
-
-    console.log('Saving profile data:', updateData);
-    await new Promise(resolve => setTimeout(resolve, 1500)); // Simulate save
-
-    toast({
-      title: 'Profile Updated',
-      description: 'Your changes have been saved.',
-    });
-    setIsSaving(false);
-    router.push('/profile');
   };
 
   if (loading || !appUser) {
