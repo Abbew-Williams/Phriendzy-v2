@@ -8,6 +8,9 @@ import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent } from '@/components/ui/card';
+import { useUser } from '@/firebase';
+import { uploadFile } from '@/firebase/storage';
+import { createPost } from '@/firebase/firestore/posts';
 
 export default function CreatePage() {
   const [file, setFile] = useState<File | null>(null);
@@ -16,6 +19,7 @@ export default function CreatePage() {
   const [isUploading, setIsUploading] = useState(false);
   const router = useRouter();
   const { toast } = useToast();
+  const { user } = useUser();
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = event.target.files?.[0];
@@ -44,23 +48,51 @@ export default function CreatePage() {
       });
       return;
     }
+    
+    if (!user) {
+       toast({
+        title: 'Authentication required',
+        description: 'You need to be logged in to create a post.',
+        variant: 'destructive',
+      });
+      return;
+    }
 
     setIsUploading(true);
 
-    // TODO: Implement actual upload to Firebase Storage
-    // and creation of post document in Firestore.
-    console.log('Uploading file:', file.name);
-    console.log('Caption:', caption);
+    try {
+      // 1. Upload file to Firebase Storage
+      const filePath = `posts/${user.uid}/${Date.now()}_${file.name}`;
+      const mediaUrl = await uploadFile(file, filePath);
 
-    await new Promise(resolve => setTimeout(resolve, 2000)); // Simulate upload
+      // 2. Determine media type
+      const mediaType = file.type.startsWith('image/') ? 'image' : 'video';
 
-    toast({
-      title: 'Post Created!',
-      description: 'Your post is now live.',
-    });
+      // 3. Create post document in Firestore
+      await createPost({
+        authorId: user.uid,
+        caption,
+        mediaUrl,
+        mediaType,
+      });
 
-    setIsUploading(false);
-    router.push('/home');
+      toast({
+        title: 'Post Created!',
+        description: 'Your post is now live.',
+      });
+
+      router.push('/home');
+
+    } catch (error) {
+      console.error('Error creating post:', error);
+      toast({
+        title: 'Upload Failed',
+        description: 'Could not create your post. Please try again.',
+        variant: 'destructive',
+      });
+    } finally {
+       setIsUploading(false);
+    }
   };
 
   return (
