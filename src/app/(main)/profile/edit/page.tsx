@@ -65,6 +65,9 @@ export default function EditProfilePage() {
   });
   
   const watchedUsername = form.watch('username');
+  const { isDirty, dirtyFields } = form.formState;
+  const hasAvatarChanged = !!avatarFile;
+  const hasChanges = isDirty || hasAvatarChanged;
 
   useEffect(() => {
     if (appUser) {
@@ -137,6 +140,14 @@ export default function EditProfilePage() {
 
   const onSubmit = async (values: z.infer<typeof profileFormSchema>) => {
     if (!appUser) return;
+    
+    if (!hasChanges) {
+      toast({
+        title: 'No changes',
+        description: "You haven't made any changes to your profile.",
+      });
+      return;
+    }
 
     if (usernameStatus === 'taken') {
         toast({
@@ -150,23 +161,26 @@ export default function EditProfilePage() {
     setIsSaving(true);
 
     try {
-        let newAvatarUrl = appUser.avatarUrl;
-        if (avatarFile) {
-            const filePath = `avatars/${appUser.uid}/${Date.now()}_${avatarFile.name}`;
-            newAvatarUrl = await uploadFile(avatarFile, filePath);
-        }
+        const updateData: any = {};
         
-        const usernameChanged = values.username !== appUser.username;
-        const updateData: any = {
-            ...values,
-            avatarUrl: newAvatarUrl,
-        };
-        
-        if (usernameChanged) {
-            updateData.usernameLastChanged = serverTimestamp();
+        if (isDirty) {
+            if (dirtyFields.firstName) updateData.firstName = values.firstName;
+            if (dirtyFields.lastName) updateData.lastName = values.lastName;
+            if (dirtyFields.bio) updateData.bio = values.bio;
+            if (dirtyFields.username) {
+                updateData.username = values.username;
+                updateData.usernameLastChanged = serverTimestamp();
+            }
         }
 
-        await updateUserProfile(appUser.uid, updateData);
+        if (hasAvatarChanged && avatarFile) {
+            const filePath = `avatars/${appUser.uid}/${Date.now()}_${avatarFile.name}`;
+            updateData.avatarUrl = await uploadFile(avatarFile, filePath);
+        }
+
+        if (Object.keys(updateData).length > 0) {
+            await updateUserProfile(appUser.uid, updateData);
+        }
 
         toast({
             title: 'Profile Updated',
@@ -302,7 +316,7 @@ export default function EditProfilePage() {
             )}
           />
 
-          <Button type="submit" loading={isSaving}>Save Changes</Button>
+          <Button type="submit" loading={isSaving} disabled={!hasChanges || isSaving}>Save Changes</Button>
         </form>
       </Form>
     </div>
