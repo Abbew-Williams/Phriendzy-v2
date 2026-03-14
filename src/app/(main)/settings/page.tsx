@@ -21,7 +21,7 @@ import { Button } from '@/components/ui/button';
 
 export default function SettingsPage() {
   return (
-    <div className="container mx-auto max-w-2xl p-4 sm:p-6 lg:p-8">
+    <div className="mx-auto w-full max-w-2xl p-4 sm:p-6 lg:p-8">
       <h1 className="font-headline text-3xl font-bold tracking-tight mb-8">
         Settings
       </h1>

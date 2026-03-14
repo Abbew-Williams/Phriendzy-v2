@@ -215,7 +215,7 @@ export default function EditProfilePage() {
 
   if (loading || !appUser) {
     return (
-      <div className="container mx-auto max-w-2xl p-4 sm:p-6 lg:p-8 space-y-8">
+      <div className="mx-auto w-full max-w-2xl p-4 sm:p-6 lg:p-8 space-y-8">
         <h1 className="font-headline text-3xl font-bold tracking-tight">Edit Profile</h1>
         <div className="flex items-center gap-4">
           <Skeleton className="w-20 h-20 rounded-full" />
@@ -261,7 +261,7 @@ export default function EditProfilePage() {
   };
 
   return (
-    <div className="container mx-auto max-w-2xl p-4 sm:p-6 lg:p-8">
+    <div className="mx-auto w-full max-w-2xl p-4 sm:p-6 lg:p-8">
       <h1 className="font-headline text-3xl font-bold tracking-tight mb-8">Edit Profile</h1>
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">

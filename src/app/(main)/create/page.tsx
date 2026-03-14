@@ -157,7 +157,7 @@ export default function CreatePage() {
   
   if (!previewUrl) {
     return (
-      <div className="container mx-auto max-w-4xl p-4 sm:p-6 lg:p-8 flex flex-col items-center justify-center h-[calc(100vh-10rem)]">
+      <div className="mx-auto w-full max-w-4xl p-4 sm:p-6 lg:p-8 flex flex-col items-center justify-center h-[calc(100vh-10rem)]">
         <Card className="w-full max-w-lg">
           <CardContent className="p-6">
              <div className="relative flex flex-col items-center justify-center w-full h-80 border-2 border-dashed rounded-lg cursor-pointer hover:bg-muted">
@@ -175,7 +175,7 @@ export default function CreatePage() {
   }
 
   return (
-    <div className="container mx-auto max-w-5xl p-4 sm:p-6 lg:p-8">
+    <div className="mx-auto w-full max-w-5xl p-4 sm:p-6 lg:p-8">
       <form onSubmit={handleSubmit}>
         <Card className="overflow-hidden">
           <div className="grid grid-cols-1 md:grid-cols-2 min-h-[60vh]">

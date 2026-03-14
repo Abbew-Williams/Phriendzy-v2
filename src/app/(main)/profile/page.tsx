@@ -24,7 +24,7 @@ export default function ProfilePage() {
 
   if (loading || !appUser) {
     return (
-      <div className="container mx-auto max-w-4xl p-4 sm:p-6 lg:p-8">
+      <div className="mx-auto w-full max-w-4xl p-4 sm:p-6 lg:p-8">
         <header className="flex flex-col sm:flex-row gap-8 items-center sm:items-start mb-10">
           <Skeleton className="w-24 h-24 sm:w-36 sm:h-36 rounded-full" />
           <div className="flex-1 space-y-4">
@@ -52,7 +52,7 @@ export default function ProfilePage() {
   const userName = `${appUser.firstName || ''} ${appUser.lastName || ''}`.trim();
 
   return (
-    <div className="container mx-auto max-w-4xl p-4 sm:p-6 lg:p-8">
+    <div className="mx-auto w-full max-w-4xl p-4 sm:p-6 lg:p-8">
       <header className="flex flex-col sm:flex-row gap-8 items-center sm:items-start mb-10">
         <UserAvatar user={appUser} className="w-24 h-24 sm:w-36 sm:h-36" />
         <div className="flex-1 text-center sm:text-left">

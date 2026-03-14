@@ -36,7 +36,7 @@ export default async function ExplorePage() {
 
 
   return (
-    <div className="container mx-auto p-4 sm:p-6 lg:p-8">
+    <div className="w-full p-4 sm:p-6 lg:p-8">
       <h1 className="font-headline text-3xl font-bold tracking-tight mb-6">Explore</h1>
       <div className="grid grid-cols-3 gap-1">
         {recommendedPosts.map((post) => (
