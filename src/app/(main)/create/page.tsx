@@ -83,11 +83,17 @@ export default function CreatePage() {
 
       router.push('/home');
 
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error creating post:', error);
+      let description = 'Could not create your post. Please try again.';
+      if (error?.code === 'storage/unauthorized') {
+          description = 'You do not have permission to upload files. Please check the Storage security rules in your Firebase project.';
+      } else if (error?.message) {
+          description = error.message;
+      }
       toast({
         title: 'Upload Failed',
-        description: 'Could not create your post. Please try again.',
+        description: description,
         variant: 'destructive',
       });
     } finally {

@@ -195,11 +195,17 @@ export default function EditProfilePage() {
             description: 'Your changes have been saved.',
         });
         router.push('/profile');
-    } catch (error) {
+    } catch (error: any) {
         console.error("Error updating profile:", error);
+        let description = 'Could not save your profile. Please try again.';
+        if (error?.code === 'storage/unauthorized') {
+            description = 'You do not have permission to upload a profile photo. Please check the Storage security rules in your Firebase project.';
+        } else if (error?.message) {
+            description = error.message;
+        }
         toast({
             title: 'Update Failed',
-            description: 'Could not save your profile. Please try again.',
+            description: description,
             variant: 'destructive',
         });
     } finally {
