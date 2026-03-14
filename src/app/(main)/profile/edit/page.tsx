@@ -159,6 +159,7 @@ export default function EditProfilePage() {
     }
 
     setIsSaving(true);
+    let updateError: any = null;
 
     try {
         const updateData: any = {};
@@ -179,7 +180,14 @@ export default function EditProfilePage() {
         }
 
         if (Object.keys(updateData).length > 0) {
-            await updateUserProfile(appUser.uid, updateData);
+            const { success, error } = await updateUserProfile(appUser.uid, updateData);
+            if (!success) {
+                updateError = error;
+            }
+        }
+
+        if (updateError) {
+          throw updateError;
         }
 
         toast({
