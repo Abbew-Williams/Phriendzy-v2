@@ -29,9 +29,13 @@
         "mediaType": { "type": "string", "enum": ["image", "video"] },
         "likesCount": { "type": "number" },
         "commentsCount": { "type": "number" },
-        "createdAt": { "type": "string", "format": "date-time" }
+        "createdAt": { "type": "string", "format": "date-time" },
+        "privacy": { "type": "string", "enum": ["public", "friends", "private"], "description": "Post privacy setting." },
+        "allowComments": { "type": "boolean", "description": "Whether users can comment on the post." },
+        "allowDuet": { "type": "boolean", "description": "Whether users can create a duet with the post." },
+        "allowStitch": { "type": "boolean", "description": "Whether users can create a stitch with the post." }
       },
-      "required": ["authorId", "mediaUrl", "mediaType", "createdAt"]
+      "required": ["authorId", "mediaUrl", "mediaType", "createdAt", "privacy"]
     }
   },
   "auth": {

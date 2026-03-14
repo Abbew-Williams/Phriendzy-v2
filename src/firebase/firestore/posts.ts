@@ -8,6 +8,10 @@ export const createPost = async (postData: {
     caption: string;
     mediaUrl: string;
     mediaType: 'image' | 'video';
+    privacy: 'public' | 'friends' | 'private';
+    allowComments: boolean;
+    allowDuet: boolean;
+    allowStitch: boolean;
 }) => {
     try {
         const postsCollection = collection(firestore, 'posts');
@@ -20,6 +24,6 @@ export const createPost = async (postData: {
         return { success: true, error: null };
     } catch (error: any) {
         console.error("Error creating post: ", error);
-        return { success: false, error };
+        return { success: false, error: { message: error.message || "Failed to create post." } };
     }
 };

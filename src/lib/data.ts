@@ -1,4 +1,4 @@
-import type { User, Post } from '@/lib/types';
+import type { User, Post, Comment } from '@/lib/types';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 
 const findImage = (id: string) => PlaceHolderImages.find(img => img.id === id)?.imageUrl || '';
@@ -68,6 +68,16 @@ export const users: User[] = [
 
 export const currentUser = users[0];
 
+const commentsForPost1: Comment[] = [
+    { id: 'comment-1-1', author: users[0], text: 'This is amazing! 🔥', createdAt: '2h ago' },
+    { id: 'comment-1-2', author: users[2], text: 'Wow, what a shot!', createdAt: '1h ago' },
+];
+
+const commentsForPost4: Comment[] = [
+    { id: 'comment-4-1', author: users[1], text: 'Love this look!', createdAt: '2d ago' },
+];
+
+
 export const posts: Post[] = [
   {
     id: 'post-1',
@@ -75,12 +85,13 @@ export const posts: Post[] = [
     mediaUrl: 'https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4',
     mediaType: 'video',
     caption: 'Cyberpunk city nights are a different kind of magic.',
-    likes: 234,
-    comments: [
-      { id: 'comment-1-1', author: users[0], text: 'This is amazing! 🔥', createdAt: '2h ago' },
-      { id: 'comment-1-2', author: users[2], text: 'Wow, what a shot!', createdAt: '1h ago' },
-    ],
+    likesCount: 234,
+    commentsCount: commentsForPost1.length,
     createdAt: '3h ago',
+    privacy: 'public',
+    allowComments: true,
+    allowDuet: true,
+    allowStitch: true,
   },
   {
     id: 'post-2',
@@ -88,9 +99,13 @@ export const posts: Post[] = [
     mediaUrl: 'https://storage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4',
     mediaType: 'video',
     caption: 'Finding peace in nature\'s embrace. Perfect spot to meditate and create new sounds.',
-    likes: 540,
-    comments: [],
+    likesCount: 540,
+    commentsCount: 0,
     createdAt: '5h ago',
+    privacy: 'public',
+    allowComments: true,
+    allowDuet: true,
+    allowStitch: true,
   },
   {
     id: 'post-3',
@@ -98,9 +113,13 @@ export const posts: Post[] = [
     mediaUrl: findImage('post-3'),
     mediaType: 'image',
     caption: 'Playing with colors and shapes. What do you see?',
-    likes: 120,
-    comments: [],
+    likesCount: 120,
+    commentsCount: 0,
     createdAt: '1d ago',
+    privacy: 'public',
+    allowComments: true,
+    allowDuet: true,
+    allowStitch: true,
   },
   {
     id: 'post-4',
@@ -108,11 +127,13 @@ export const posts: Post[] = [
     mediaUrl: 'https://storage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4',
     mediaType: 'video',
     caption: 'Street style in the city that never sleeps.',
-    likes: 890,
-    comments: [
-      { id: 'comment-4-1', author: users[1], text: 'Love this look!', createdAt: '2d ago' },
-    ],
+    likesCount: 890,
+    commentsCount: commentsForPost4.length,
     createdAt: '2d ago',
+    privacy: 'public',
+    allowComments: true,
+    allowDuet: true,
+    allowStitch: true,
   },
   {
     id: 'post-5',
@@ -120,9 +141,13 @@ export const posts: Post[] = [
     mediaUrl: findImage('post-5'),
     mediaType: 'image',
     caption: 'Brunch goals! This was too good not to share.',
-    likes: 450,
-    comments: [],
+    likesCount: 450,
+    commentsCount: 0,
     createdAt: '3d ago',
+    privacy: 'public',
+    allowComments: true,
+    allowDuet: true,
+    allowStitch: true,
   },
   {
     id: 'post-6',
@@ -130,9 +155,13 @@ export const posts: Post[] = [
     mediaUrl: findImage('post-6'),
     mediaType: 'image',
     caption: 'Lost in the beauty of this place. Unforgettable.',
-    likes: 621,
-    comments: [],
+    likesCount: 621,
+    commentsCount: 0,
     createdAt: '3d ago',
+    privacy: 'public',
+    allowComments: true,
+    allowDuet: true,
+    allowStitch: true,
   },
   {
     id: 'post-7',
@@ -140,9 +169,13 @@ export const posts: Post[] = [
     mediaUrl: findImage('post-7'),
     mediaType: 'image',
     caption: 'My best co-worker.',
-    likes: 1023,
-    comments: [],
+    likesCount: 1023,
+    commentsCount: 0,
     createdAt: '4d ago',
+    privacy: 'public',
+    allowComments: true,
+    allowDuet: true,
+    allowStitch: true,
   },
   {
     id: 'post-8',
@@ -150,9 +183,13 @@ export const posts: Post[] = [
     mediaUrl: 'https://storage.googleapis.com/gtv-videos-bucket/sample/TearsOfSteel.mp4',
     mediaType: 'video',
     caption: 'Pushing the limits.',
-    likes: 188,
-    comments: [],
+    likesCount: 188,
+    commentsCount: 0,
     createdAt: '4d ago',
+    privacy: 'public',
+    allowComments: true,
+    allowDuet: true,
+    allowStitch: true,
   },
     {
     id: 'post-9',
@@ -160,9 +197,13 @@ export const posts: Post[] = [
     mediaUrl: findImage('post-9'),
     mediaType: 'image',
     caption: 'Lines and shadows.',
-    likes: 341,
-    comments: [],
+    likesCount: 341,
+    commentsCount: 0,
     createdAt: '5d ago',
+    privacy: 'public',
+    allowComments: true,
+    allowDuet: true,
+    allowStitch: true,
   },
     {
     id: 'post-10',
@@ -170,8 +211,12 @@ export const posts: Post[] = [
     mediaUrl: findImage('post-10'),
     mediaType: 'image',
     caption: 'Late night coding session. #developerlife',
-    likes: 98,
-    comments: [],
+    likesCount: 98,
+    commentsCount: 0,
     createdAt: '5d ago',
+    privacy: 'public',
+    allowComments: true,
+    allowDuet: true,
+    allowStitch: true,
   }
 ];

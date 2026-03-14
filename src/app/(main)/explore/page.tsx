@@ -4,6 +4,7 @@ import { Heart, MessageCircle, Video, Image as ImageIcon } from 'lucide-react';
 
 import { aiPoweredDiscoveryFeed } from '@/ai/flows/ai-powered-discovery-feed';
 import { currentUser, posts as allPosts } from '@/lib/data';
+import type { Post } from '@/lib/types';
 
 export default async function ExplorePage() {
   const recommendations = await aiPoweredDiscoveryFeed({
@@ -16,15 +17,15 @@ export default async function ExplorePage() {
     limit: 18,
   });
   
-  // Create a map for quick post lookup
   const postMap = new Map(allPosts.map(p => [p.id, p]));
 
-  // Get recommended posts, preserving order from the AI
-  let recommendedPosts = (recommendations?.recommendedPostIds || [])
-    .map(id => postMap.get(id))
-    .filter(Boolean);
+  let recommendedPosts: (Post | undefined)[] = [];
+  if (recommendations && recommendations.recommendedPostIds) {
+    recommendedPosts = recommendations.recommendedPostIds
+      .map(id => postMap.get(id))
+      .filter(Boolean);
+  }
 
-  // If AI returns fewer than requested, fill with other posts, avoiding duplicates
   if (recommendedPosts.length < 18) {
       const existingIds = new Set(recommendedPosts.map(p => p!.id));
       const fillerPosts = allPosts
@@ -68,11 +69,11 @@ export default async function ExplorePage() {
               <div className="flex items-center gap-4 text-white">
                 <div className="flex items-center gap-1">
                   <Heart className="h-5 w-5" />
-                  <span className="text-sm font-semibold">{post.likes}</span>
+                  <span className="text-sm font-semibold">{post.likesCount}</span>
                 </div>
                 <div className="flex items-center gap-1">
                   <MessageCircle className="h-5 w-5" />
-                  <span className="text-sm font-semibold">{post.comments.length}</span>
+                  <span className="text-sm font-semibold">{post.commentsCount}</span>
                 </div>
               </div>
             </div>

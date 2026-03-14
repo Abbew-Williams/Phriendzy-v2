@@ -71,14 +71,14 @@ export function PostCard({ post }: PostCardProps) {
             </Button>
           </div>
         </div>
-        <div className="w-full text-sm font-bold mt-2">{post.likes} likes</div>
+        <div className="w-full text-sm font-bold mt-2">{post.likesCount} likes</div>
         <div className="w-full text-sm mt-1">
           <span className="font-bold mr-2">{post.author.username}</span>
           <span>{post.caption}</span>
         </div>
-        {post.comments.length > 0 && (
+        {post.commentsCount > 0 && (
           <div className="w-full text-sm text-muted-foreground mt-2 cursor-pointer hover:underline">
-            View all {post.comments.length} comments
+            View all {post.commentsCount} comments
           </div>
         )}
         <div className="w-full text-xs text-muted-foreground mt-2">

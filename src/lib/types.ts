@@ -18,9 +18,13 @@ export type Post = {
   mediaUrl: string;
   mediaType: 'image' | 'video';
   caption: string;
-  likes: number;
-  comments: Comment[];
+  likesCount: number;
+  commentsCount: number;
   createdAt: string;
+  privacy: 'public' | 'friends' | 'private';
+  allowComments: boolean;
+  allowDuet: boolean;
+  allowStitch: boolean;
 };
 
 export type Comment = {

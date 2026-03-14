@@ -121,13 +121,13 @@ export function FullScreenPost({ post, onInteraction }: FullScreenPostProps) {
               <Button variant="ghost" size="icon" className="text-white hover:text-white hover:bg-transparent" onClick={handleLike}>
                 <Heart className={cn("w-8 h-8 transition-colors", isLiked && 'fill-red-500 text-red-500')} />
               </Button>
-              <span className="text-xs font-bold">{post.likes + (isLiked ? 1 : 0)}</span>
+              <span className="text-xs font-bold">{post.likesCount + (isLiked ? 1 : 0)}</span>
             </div>
             <div className="flex flex-col items-center">
               <Button variant="ghost" size="icon" className="text-white hover:text-white hover:bg-transparent" onClick={handleComment}>
                 <MessageCircle className="w-8 h-8" />
               </Button>
-              <span className="text-xs font-bold">{post.comments.length}</span>
+              <span className="text-xs font-bold">{post.commentsCount}</span>
             </div>
             <div className="flex flex-col items-center">
               <Button variant="ghost" size="icon" className="text-white hover:text-white hover:bg-transparent" onClick={onInteraction}>
