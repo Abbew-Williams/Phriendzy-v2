@@ -14,13 +14,14 @@ export type User = {
 
 export type Post = {
   id: string;
-  author: User;
+  author: User; // Populated client-side for UI
+  authorId: string; // Stored in Firestore
   mediaUrl: string;
   mediaType: 'image' | 'video';
   caption: string;
   likesCount: number;
   commentsCount: number;
-  createdAt: string;
+  createdAt: any; // Can be Firestore Timestamp or string
   privacy: 'public' | 'friends' | 'private';
   allowComments: boolean;
   allowDuet: boolean;
@@ -29,7 +30,11 @@ export type Post = {
 
 export type Comment = {
   id: string;
-  author: User;
+  author: User; // Populated client-side for UI
+  authorId: string;
+  postId: string;
   text: string;
-  createdAt: string;
+  createdAt: any; // Firestore timestamp
+  likesCount?: number;
+  parentId?: string | null;
 };

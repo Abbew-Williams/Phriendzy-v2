@@ -11,7 +11,6 @@ interface UserAvatarProps extends AvatarProps {
 
 export function UserAvatar({ user, className, ...props }: UserAvatarProps) {
   if (!user) {
-    // Render a placeholder or null if user is not available
     const fallback = 'G';
      return (
       <Avatar className={cn('h-8 w-8', className)} {...props}>
@@ -27,7 +26,7 @@ export function UserAvatar({ user, className, ...props }: UserAvatarProps) {
 
   return (
     <Avatar className={cn('h-8 w-8', className)} {...props}>
-      <AvatarImage src={user.avatarUrl} alt={`${user.username}'s avatar`} />
+      <AvatarImage src={user.avatarUrl} alt={`${user.username}'s avatar`} className="object-cover" />
       <AvatarFallback>{fallback}</AvatarFallback>
     </Avatar>
   );

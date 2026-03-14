@@ -69,12 +69,12 @@ export const users: User[] = [
 export const currentUser = users[0];
 
 const commentsForPost1: Comment[] = [
-    { id: 'comment-1-1', author: users[0], text: 'This is amazing! 🔥', createdAt: '2h ago' },
-    { id: 'comment-1-2', author: users[2], text: 'Wow, what a shot!', createdAt: '1h ago' },
+    { id: 'comment-1-1', authorId: 'user-1', postId: 'post-1', author: users[0], text: 'This is amazing! 🔥', createdAt: '2h ago' },
+    { id: 'comment-1-2', authorId: 'user-2', postId: 'post-1', author: users[2], text: 'Wow, what a shot!', createdAt: '1h ago' },
 ];
 
 const commentsForPost4: Comment[] = [
-    { id: 'comment-4-1', author: users[1], text: 'Love this look!', createdAt: '2d ago' },
+    { id: 'comment-4-1', authorId: 'user-2', postId: 'post-4', author: users[1], text: 'Love this look!', createdAt: '2d ago' },
 ];
 
 
@@ -82,6 +82,7 @@ export const posts: Post[] = [
   {
     id: 'post-1',
     author: users[1],
+    authorId: users[1].id,
     mediaUrl: 'https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4',
     mediaType: 'video',
     caption: 'Cyberpunk city nights are a different kind of magic.',
@@ -96,6 +97,7 @@ export const posts: Post[] = [
   {
     id: 'post-2',
     author: users[2],
+    authorId: users[2].id,
     mediaUrl: 'https://storage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4',
     mediaType: 'video',
     caption: 'Finding peace in nature\'s embrace. Perfect spot to meditate and create new sounds.',
@@ -110,6 +112,7 @@ export const posts: Post[] = [
   {
     id: 'post-3',
     author: users[3],
+    authorId: users[3].id,
     mediaUrl: findImage('post-3'),
     mediaType: 'image',
     caption: 'Playing with colors and shapes. What do you see?',
@@ -124,6 +127,7 @@ export const posts: Post[] = [
   {
     id: 'post-4',
     author: users[4],
+    authorId: users[4].id,
     mediaUrl: 'https://storage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4',
     mediaType: 'video',
     caption: 'Street style in the city that never sleeps.',
@@ -138,6 +142,7 @@ export const posts: Post[] = [
   {
     id: 'post-5',
     author: users[0],
+    authorId: users[0].id,
     mediaUrl: findImage('post-5'),
     mediaType: 'image',
     caption: 'Brunch goals! This was too good not to share.',
@@ -152,6 +157,7 @@ export const posts: Post[] = [
   {
     id: 'post-6',
     author: users[1],
+    authorId: users[1].id,
     mediaUrl: findImage('post-6'),
     mediaType: 'image',
     caption: 'Lost in the beauty of this place. Unforgettable.',
@@ -166,6 +172,7 @@ export const posts: Post[] = [
   {
     id: 'post-7',
     author: users[2],
+    authorId: users[2].id,
     mediaUrl: findImage('post-7'),
     mediaType: 'image',
     caption: 'My best co-worker.',
@@ -180,6 +187,7 @@ export const posts: Post[] = [
   {
     id: 'post-8',
     author: users[0],
+    authorId: users[0].id,
     mediaUrl: 'https://storage.googleapis.com/gtv-videos-bucket/sample/TearsOfSteel.mp4',
     mediaType: 'video',
     caption: 'Pushing the limits.',
@@ -194,6 +202,7 @@ export const posts: Post[] = [
     {
     id: 'post-9',
     author: users[3],
+    authorId: users[3].id,
     mediaUrl: findImage('post-9'),
     mediaType: 'image',
     caption: 'Lines and shadows.',
@@ -208,6 +217,7 @@ export const posts: Post[] = [
     {
     id: 'post-10',
     author: users[4],
+    authorId: users[4].id,
     mediaUrl: findImage('post-10'),
     mediaType: 'image',
     caption: 'Late night coding session. #developerlife',

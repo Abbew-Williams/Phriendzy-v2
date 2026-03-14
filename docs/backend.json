@@ -36,6 +36,20 @@
         "allowStitch": { "type": "boolean", "description": "Whether users can create a stitch with the post." }
       },
       "required": ["authorId", "mediaUrl", "mediaType", "createdAt", "privacy"]
+    },
+    "Comment": {
+      "title": "Comment",
+      "description": "A comment on a post.",
+      "type": "object",
+      "properties": {
+        "authorId": { "type": "string" },
+        "postId": { "type": "string" },
+        "text": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "likesCount": { "type": "number", "description": "Number of likes on the comment." },
+        "parentId": { "type": "string", "description": "ID of the parent comment if this is a reply." }
+      },
+      "required": ["authorId", "postId", "text", "createdAt"]
     }
   },
   "auth": {
@@ -46,9 +60,33 @@
       "schema": { "$ref": "#/entities/UserProfile" },
       "description": "Stores public user profile data."
     },
+    "/users/{userId}/following/{followingId}": {
+      "schema": { "type": "object", "properties": { "createdAt": { "type": "string", "format": "date-time" } } },
+      "description": "Subcollection to track users that this user is following. The document ID is the ID of the user being followed."
+    },
+    "/users/{userId}/followers/{followerId}": {
+      "schema": { "type": "object", "properties": { "createdAt": { "type": "string", "format": "date-time" } } },
+      "description": "Subcollection to track users that are following this user. The document ID is the ID of the follower."
+    },
+    "/users/{userId}/likes/{postId}": {
+      "schema": { "type": "object", "properties": { "createdAt": { "type": "string", "format": "date-time" } } },
+      "description": "Subcollection of posts liked by the user. The document ID is the post ID."
+    },
+    "/users/{userId}/saved/{postId}": {
+      "schema": { "type": "object", "properties": { "createdAt": { "type": "string", "format": "date-time" } } },
+      "description": "Subcollection of posts saved by the user. The document ID is the post ID."
+    },
     "/posts/{postId}": {
       "schema": { "$ref": "#/entities/Post" },
       "description": "Stores all posts."
+    },
+    "/posts/{postId}/likes/{userId}": {
+      "schema": { "type": "object", "properties": { "createdAt": { "type": "string", "format": "date-time" } } },
+      "description": "Subcollection of users who liked the post. The document ID is the user ID."
+    },
+    "/posts/{postId}/comments/{commentId}": {
+      "schema": { "$ref": "#/entities/Comment" },
+      "description": "Subcollection for comments on a post."
     }
   }
 }

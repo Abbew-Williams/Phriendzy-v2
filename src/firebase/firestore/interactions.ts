@@ -1,0 +1,134 @@
+'use client';
+
+import {
+  doc,
+  writeBatch,
+  getDoc,
+  setDoc,
+  deleteDoc,
+  serverTimestamp,
+  addDoc,
+  increment,
+  collection,
+} from 'firebase/firestore';
+import { firestore } from '@/firebase';
+
+// --- Like ---
+export const toggleLike = async (postId: string, userId: string): Promise<boolean> => {
+  const postRef = doc(firestore, 'posts', postId);
+  const likeRef = doc(firestore, 'posts', postId, 'likes', userId);
+  const userLikeRef = doc(firestore, 'users', userId, 'likes', postId);
+
+  try {
+    const likeSnap = await getDoc(likeRef);
+    const batch = writeBatch(firestore);
+
+    if (likeSnap.exists()) {
+      // Unlike
+      batch.delete(likeRef);
+      batch.delete(userLikeRef);
+      batch.update(postRef, { likesCount: increment(-1) });
+      await batch.commit();
+      return false;
+    } else {
+      // Like
+      batch.set(likeRef, { createdAt: serverTimestamp() });
+      batch.set(userLikeRef, { createdAt: serverTimestamp() });
+      batch.update(postRef, { likesCount: increment(1) });
+      await batch.commit();
+      return true;
+    }
+  } catch (error) {
+    console.error("Error toggling like:", error);
+    throw error;
+  }
+};
+
+
+// --- Save ---
+export const toggleSave = async (postId: string, userId: string): Promise<boolean> => {
+  const saveRef = doc(firestore, 'users', userId, 'saved', postId);
+  try {
+    const saveSnap = await getDoc(saveRef);
+    if (saveSnap.exists()) {
+      await deleteDoc(saveRef);
+      return false;
+    } else {
+      await setDoc(saveRef, { createdAt: serverTimestamp() });
+      return true;
+    }
+  } catch (error) {
+    console.error("Error toggling save:", error);
+    throw error;
+  }
+};
+
+
+// --- Comment ---
+export const addComment = async (postId: string, authorId: string, text: string) => {
+    if (!text.trim()) throw new Error("Comment cannot be empty");
+
+    const postRef = doc(firestore, 'posts', postId);
+    const commentsColRef = collection(firestore, 'posts', postId, 'comments');
+
+    try {
+        const batch = writeBatch(firestore);
+
+        const newCommentRef = doc(commentsColRef);
+        batch.set(newCommentRef, {
+            authorId,
+            postId,
+            text,
+            createdAt: serverTimestamp(),
+            likesCount: 0,
+        });
+
+        batch.update(postRef, { commentsCount: increment(1) });
+
+        await batch.commit();
+        
+        return { success: true, commentId: newCommentRef.id };
+    } catch (error) {
+        console.error("Error adding comment:", error);
+        return { success: false, error };
+    }
+};
+
+// --- Follow ---
+export const toggleFollow = async (currentUserId: string, targetUserId: string): Promise<boolean> => {
+    if (currentUserId === targetUserId) {
+        console.error("Users cannot follow themselves.");
+        return false;
+    }
+
+    const currentUserFollowingRef = doc(firestore, 'users', currentUserId, 'following', targetUserId);
+    const targetUserFollowersRef = doc(firestore, 'users', targetUserId, 'followers', currentUserId);
+    const currentUserRef = doc(firestore, 'users', currentUserId);
+    const targetUserRef = doc(firestore, 'users', targetUserId);
+
+    try {
+        const followingSnap = await getDoc(currentUserFollowingRef);
+        const batch = writeBatch(firestore);
+
+        if (followingSnap.exists()) {
+            // Unfollow
+            batch.delete(currentUserFollowingRef);
+            batch.delete(targetUserFollowersRef);
+            batch.update(currentUserRef, { followingCount: increment(-1) });
+            batch.update(targetUserRef, { followersCount: increment(-1) });
+            await batch.commit();
+            return false;
+        } else {
+            // Follow
+            batch.set(currentUserFollowingRef, { createdAt: serverTimestamp() });
+            batch.set(targetUserFollowersRef, { createdAt: serverTimestamp() });
+            batch.update(currentUserRef, { followingCount: increment(1) });
+            batch.update(targetUserRef, { followersCount: increment(1) });
+            await batch.commit();
+            return true;
+        }
+    } catch (error) {
+        console.error("Error toggling follow:", error);
+        throw error;
+    }
+}
