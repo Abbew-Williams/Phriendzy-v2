@@ -8,9 +8,17 @@ import Link from 'next/link';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Play } from 'lucide-react';
+import { useState, useEffect } from 'react';
 
 function NotificationItem({ notification }: { notification: Notification }) {
-  const timeAgo = notification.createdAt ? formatDistanceToNow(notification.createdAt, { addSuffix: true }) : '';
+  const [timeAgo, setTimeAgo] = useState('');
+
+  useEffect(() => {
+    if (notification.createdAt) {
+      setTimeAgo(formatDistanceToNow(notification.createdAt, { addSuffix: true }));
+    }
+  }, [notification.createdAt]);
+
 
   const renderContent = () => {
     switch(notification.type) {
@@ -34,7 +42,7 @@ function NotificationItem({ notification }: { notification: Notification }) {
         <p>
           <Link href={`/profile/${notification.fromUser.username}`} className="font-bold">{notification.fromUser.username}</Link>
           <span className="text-muted-foreground"> {renderContent()} </span>
-          <span className="text-muted-foreground/80 ml-2">{timeAgo}</span>
+          {timeAgo && <span className="text-muted-foreground/80 ml-2">{timeAgo}</span>}
         </p>
       </div>
        {notification.type === 'follow' && <Button size="sm">Follow Back</Button>}
