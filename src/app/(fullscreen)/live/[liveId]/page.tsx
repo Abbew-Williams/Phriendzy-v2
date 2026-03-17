@@ -21,6 +21,7 @@ const mockComments = [
 const userMap = new Map(users.map(u => [u.id, u]));
 
 export default function LivePage({ params }: { params: { liveId: string } }) {
+    const { liveId } = params;
     const { appUser } = useUser();
     const firestore = useFirestore();
     const [comments, setComments] = useState<any[]>([]);
@@ -34,7 +35,7 @@ export default function LivePage({ params }: { params: { liveId: string } }) {
         /*
         if (!firestore) return;
         const q = query(
-            collection(firestore, 'liveStreams', params.liveId, 'comments'),
+            collection(firestore, 'liveStreams', liveId, 'comments'),
             orderBy('createdAt', 'desc'),
             limit(50)
         );
@@ -44,7 +45,7 @@ export default function LivePage({ params }: { params: { liveId: string } }) {
         });
         return () => unsubscribe();
         */
-    }, [firestore, params.liveId]);
+    }, [firestore, liveId]);
 
     return (
         <div className="flex h-screen bg-black text-white md:flex-row flex-col-reverse">
