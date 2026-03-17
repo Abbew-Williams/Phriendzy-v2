@@ -8,6 +8,8 @@ import {
   Bookmark,
   MoreHorizontal,
 } from 'lucide-react';
+import { formatDistanceToNow } from 'date-fns';
+import { useState, useEffect } from 'react';
 
 import {
   Card,
@@ -25,6 +27,15 @@ type PostCardProps = {
 };
 
 export function PostCard({ post }: PostCardProps) {
+    const [timeAgo, setTimeAgo] = useState('');
+
+    useEffect(() => {
+        if (post.createdAt) {
+            const date = typeof post.createdAt.toDate === 'function' ? post.createdAt.toDate() : new Date(post.createdAt);
+            setTimeAgo(formatDistanceToNow(date, { addSuffix: true }));
+        }
+    }, [post.createdAt]);
+
   return (
     <Card className="w-full max-w-lg mx-auto rounded-xl overflow-hidden border-0 shadow-none">
       <CardHeader className="flex flex-row items-center gap-3 p-4">
@@ -82,7 +93,7 @@ export function PostCard({ post }: PostCardProps) {
           </div>
         )}
         <div className="w-full text-xs text-muted-foreground mt-2">
-          {post.createdAt.toUpperCase()}
+          {timeAgo}
         </div>
       </CardFooter>
     </Card>

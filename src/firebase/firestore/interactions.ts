@@ -13,6 +13,37 @@ import {
 } from 'firebase/firestore';
 import { firestore } from '@/firebase';
 
+// Helper to create notifications
+const createNotification = async (data: {
+  type: 'like' | 'comment' | 'follow';
+  fromUserId: string;
+  toUserId: string;
+  postId?: string;
+  commentId?: string;
+  commentText?: string;
+}) => {
+  if (data.fromUserId === data.toUserId) return; // Don't notify on self-actions
+  try {
+    const notificationsColRef = collection(firestore, 'users', data.toUserId, 'notifications');
+    const notificationData: any = {
+      type: data.type,
+      fromUserId: data.fromUserId,
+      toUserId: data.toUserId,
+      read: false,
+      createdAt: serverTimestamp(),
+    };
+    if (data.postId) notificationData.postId = data.postId;
+    if (data.commentId) notificationData.commentId = data.commentId;
+    if (data.commentText) notificationData.commentText = data.commentText;
+
+    await addDoc(notificationsColRef, notificationData);
+  } catch (error) {
+    console.error("Error creating notification:", error);
+    // Non-critical, so don't throw, just log
+  }
+};
+
+
 // --- Like ---
 export const toggleLike = async (postId: string, userId: string): Promise<boolean> => {
   const postRef = doc(firestore, 'posts', postId);
@@ -36,6 +67,19 @@ export const toggleLike = async (postId: string, userId: string): Promise<boolea
       batch.set(userLikeRef, { createdAt: serverTimestamp() });
       batch.update(postRef, { likesCount: increment(1) });
       await batch.commit();
+      
+      // Create notification
+      const postSnap = await getDoc(postRef);
+      if (postSnap.exists()) {
+          const postData = postSnap.data();
+          createNotification({
+              type: 'like',
+              fromUserId: userId,
+              toUserId: postData.authorId,
+              postId: postId,
+          });
+      }
+
       return true;
     }
   } catch (error) {
@@ -87,6 +131,20 @@ export const addComment = async (postId: string, authorId: string, text: string)
 
         await batch.commit();
         
+        // Create notification
+        const postSnap = await getDoc(postRef);
+        if (postSnap.exists()) {
+          const postData = postSnap.data();
+          createNotification({
+              type: 'comment',
+              fromUserId: authorId,
+              toUserId: postData.authorId,
+              postId: postId,
+              commentId: newCommentRef.id,
+              commentText: text,
+          });
+      }
+
         return { success: true, commentId: newCommentRef.id };
     } catch (error) {
         console.error("Error adding comment:", error);
@@ -98,7 +156,7 @@ export const addComment = async (postId: string, authorId: string, text: string)
 export const toggleFollow = async (currentUserId: string, targetUserId: string): Promise<boolean> => {
     if (currentUserId === targetUserId) {
         console.error("Users cannot follow themselves.");
-        return false;
+        throw new Error("Users cannot follow themselves.");
     }
 
     const currentUserFollowingRef = doc(firestore, 'users', currentUserId, 'following', targetUserId);
@@ -125,6 +183,14 @@ export const toggleFollow = async (currentUserId: string, targetUserId: string):
             batch.update(currentUserRef, { followingCount: increment(1) });
             batch.update(targetUserRef, { followersCount: increment(1) });
             await batch.commit();
+            
+            // Create notification
+            createNotification({
+                type: 'follow',
+                fromUserId: currentUserId,
+                toUserId: targetUserId,
+            });
+
             return true;
         }
     } catch (error) {
