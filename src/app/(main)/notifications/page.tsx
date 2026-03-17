@@ -7,6 +7,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
+import { Play } from 'lucide-react';
 
 function NotificationItem({ notification }: { notification: Notification }) {
   const timeAgo = notification.createdAt ? formatDistanceToNow(notification.createdAt, { addSuffix: true }) : '';
@@ -39,7 +40,13 @@ function NotificationItem({ notification }: { notification: Notification }) {
        {notification.type === 'follow' && <Button size="sm">Follow Back</Button>}
        {notification.post && (
         <Link href="#">
-           <Image src={notification.post.mediaUrl} alt="post" width={44} height={44} className="rounded-md object-cover aspect-square" />
+           {notification.post.mediaType === 'video' ? (
+                <div className="w-11 h-11 bg-muted rounded-md flex items-center justify-center">
+                    <Play className="w-6 h-6 text-muted-foreground" />
+                </div>
+            ) : (
+                <Image src={notification.post.mediaUrl} alt="post" width={44} height={44} className="rounded-md object-cover aspect-square" />
+            )}
         </Link>
       )}
     </div>
