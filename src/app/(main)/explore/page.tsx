@@ -1,84 +1,57 @@
-import Image from 'next/image';
+'use client';
+import { users } from '@/lib/data';
+import { SearchBar } from '@/components/search-bar';
+import { UserAvatar } from '@/components/user-avatar';
 import Link from 'next/link';
-import { Heart, MessageCircle, Video, Image as ImageIcon } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { RadioTower } from 'lucide-react';
+import { useState } from 'react';
 
-import { aiPoweredDiscoveryFeed } from '@/ai/flows/ai-powered-discovery-feed';
-import { currentUser, posts as allPosts } from '@/lib/data';
-import type { Post } from '@/lib/types';
-
-export default async function ExplorePage() {
-  const recommendations = await aiPoweredDiscoveryFeed({
-    userId: currentUser.id,
-    userLikedPosts: ['post-3', 'post-5'],
-    userCommentedPosts: ['post-1'],
-    userWatchedVideos: [],
-    userFollowedAccounts: ['user-2', 'user-3'],
-    currentTimestamp: new Date().toISOString(),
-    limit: 18,
-  });
+export default function ExplorePage() {
+  const [searchTerm, setSearchTerm] = useState('');
   
-  const postMap = new Map(allPosts.map(p => [p.id, p]));
-
-  let recommendedPosts: (Post | undefined)[] = [];
-  if (recommendations && recommendations.recommendedPostIds) {
-    recommendedPosts = recommendations.recommendedPostIds
-      .map(id => postMap.get(id))
-      .filter(Boolean);
-  }
-
-  if (recommendedPosts.length < 18) {
-      const existingIds = new Set(recommendedPosts.map(p => p!.id));
-      const fillerPosts = allPosts
-        .filter(p => !existingIds.has(p.id))
-        .slice(0, 18 - recommendedPosts.length);
-      recommendedPosts.push(...fillerPosts);
-  }
-
+  const filteredUsers = users.filter(user => 
+    user.username.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (user.name && user.name.toLowerCase().includes(searchTerm.toLowerCase()))
+  );
 
   return (
-    <div className="w-full p-4 sm:p-6 lg:p-8">
-      <h1 className="font-headline text-3xl font-bold tracking-tight mb-6">Explore</h1>
-      <div className="grid grid-cols-3 gap-1">
-        {recommendedPosts.map((post) => (
-          post && (
-          <Link href="#" key={post.id} className="group relative block aspect-square w-full overflow-hidden rounded-md bg-muted">
-             {post.mediaType === 'video' ? (
-                <>
-                  <video
-                    src={post.mediaUrl}
-                    muted
-                    loop
-                    playsInline
-                    className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
-                  />
-                  <Video className="absolute top-2 right-2 h-4 w-4 text-white drop-shadow-sm" />
-                </>
-              ) : (
-                <>
-                  <Image
-                    src={post.mediaUrl}
-                    alt={post.caption}
-                    fill
-                    sizes="(max-width: 768px) 33vw, 33vw"
-                    className="object-cover transition-transform duration-300 group-hover:scale-105"
-                  />
-                   <ImageIcon className="absolute top-2 right-2 h-4 w-4 text-white drop-shadow-sm" />
-                </>
-              )}
-            <div className="absolute inset-0 bg-black/20 opacity-0 transition-opacity group-hover:opacity-100 flex items-center justify-center">
-              <div className="flex items-center gap-4 text-white">
-                <div className="flex items-center gap-1">
-                  <Heart className="h-5 w-5" />
-                  <span className="text-sm font-semibold">{post.likesCount}</span>
-                </div>
-                <div className="flex items-center gap-1">
-                  <MessageCircle className="h-5 w-5" />
-                  <span className="text-sm font-semibold">{post.commentsCount}</span>
-                </div>
-              </div>
-            </div>
+    <div className="w-full max-w-4xl mx-auto p-4 sm:p-6 lg:p-8">
+      <div className="flex items-center justify-between mb-6">
+        <h1 className="font-headline text-3xl font-bold tracking-tight">Explore</h1>
+        <Button variant="ghost" asChild>
+          <Link href="/live/1" className="flex items-center gap-2 text-red-500 hover:text-red-500">
+            <RadioTower className="w-5 h-5" />
+            <span className="font-semibold">Live</span>
           </Link>
-        )))}
+        </Button>
+      </div>
+      <div className="mb-6">
+        <SearchBar 
+          placeholder="Search for creators..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+        />
+      </div>
+
+      <div className="space-y-4">
+        <h2 className="font-bold text-lg">{searchTerm ? 'Search Results' : 'Suggested Creators'}</h2>
+        {filteredUsers.map(user => (
+          <Link href={`/profile/${user.username}`} key={user.id} className="flex items-center gap-4 p-2 rounded-lg hover:bg-muted">
+            <UserAvatar user={user} className="w-12 h-12" />
+            <div className="flex-1">
+              <p className="font-bold">{user.username}</p>
+              <p className="text-sm text-muted-foreground">{user.name}</p>
+              <p className="text-sm text-muted-foreground">{user.followersCount.toLocaleString()} followers</p>
+            </div>
+            <Button size="sm" onClick={(e) => { e.preventDefault(); /* todo: handle follow */}}>Follow</Button>
+          </Link>
+        ))}
+         {filteredUsers.length === 0 && (
+            <div className="flex items-center justify-center h-64 border-2 border-dashed rounded-lg">
+                <p className="text-muted-foreground">No users found.</p>
+            </div>
+         )}
       </div>
     </div>
   );

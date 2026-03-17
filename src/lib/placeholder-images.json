@@ -91,64 +91,28 @@
       "imageHint": "technology code"
     },
     {
-      "id": "post-11",
-      "description": "Post image 11",
-      "imageUrl": "https://picsum.photos/seed/post11/600/400",
-      "imageHint": "beach summer"
+      "id": "status-1",
+      "description": "Status image 1",
+      "imageUrl": "https://picsum.photos/seed/status1/300/500",
+      "imageHint": "concert crowd"
     },
     {
-      "id": "post-12",
-      "description": "Post image 12",
-      "imageUrl": "https://picsum.photos/seed/post12/600/800",
-      "imageHint": "mountain hiking"
+      "id": "status-2",
+      "description": "Status image 2",
+      "imageUrl": "https://picsum.photos/seed/status2/300/500",
+      "imageHint": "beach sunset"
     },
     {
-      "id": "post-13",
-      "description": "Post image 13",
-      "imageUrl": "https://picsum.photos/seed/post13/600/600",
-      "imageHint": "concert music"
+      "id": "status-3",
+      "description": "Status image 3",
+      "imageUrl": "https://picsum.photos/seed/status3/300/500",
+      "imageHint": "city street"
     },
     {
-      "id": "post-14",
-      "description": "Post image 14",
-      "imageUrl": "https://picsum.photos/seed/post14/600/900",
-      "imageHint": "street style"
-    },
-    {
-      "id": "post-15",
-      "description": "Post image 15",
-      "imageUrl": "https://picsum.photos/seed/post15/600/700",
-      "imageHint": "coffee cafe"
-    },
-    {
-      "id": "post-16",
-      "description": "Post image 16",
-      "imageUrl": "https://picsum.photos/seed/post16/800/600",
-      "imageHint": "car automotive"
-    },
-    {
-      "id": "post-17",
-      "description": "Post image 17",
-      "imageUrl": "https://picsum.photos/seed/post17/600/800",
-      "imageHint": "wildlife nature"
-    },
-    {
-      "id": "post-18",
-      "description": "Post image 18",
-      "imageUrl": "https://picsum.photos/seed/post18/700/800",
-      "imageHint": "fitness gym"
-    },
-    {
-      "id": "post-19",
-      "description": "Post image 19",
-      "imageUrl": "https://picsum.photos/seed/post19/800/800",
-      "imageHint": "modern interior"
-    },
-    {
-      "id": "post-20",
-      "description": "Post image 20",
-      "imageUrl": "https://picsum.photos/seed/post20/600/750",
-      "imageHint": "gaming setup"
+      "id": "status-4",
+      "description": "Status image 4",
+      "imageUrl": "https://picsum.photos/seed/status4/300/500",
+      "imageHint": "food closeup"
     }
   ]
 }

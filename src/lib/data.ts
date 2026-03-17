@@ -1,5 +1,6 @@
-import type { User, Post, Comment } from '@/lib/types';
+import type { User, Post, Comment, Notification, Status, Chat } from '@/lib/types';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
+import { sub } from 'date-fns';
 
 const findImage = (id: string) => PlaceHolderImages.find(img => img.id === id)?.imageUrl || '';
 
@@ -68,16 +69,6 @@ export const users: User[] = [
 
 export const currentUser = users[0];
 
-const commentsForPost1: Comment[] = [
-    { id: 'comment-1-1', authorId: 'user-1', postId: 'post-1', author: users[0], text: 'This is amazing! 🔥', createdAt: '2h ago' },
-    { id: 'comment-1-2', authorId: 'user-2', postId: 'post-1', author: users[2], text: 'Wow, what a shot!', createdAt: '1h ago' },
-];
-
-const commentsForPost4: Comment[] = [
-    { id: 'comment-4-1', authorId: 'user-2', postId: 'post-4', author: users[1], text: 'Love this look!', createdAt: '2d ago' },
-];
-
-
 export const posts: Post[] = [
   {
     id: 'post-1',
@@ -87,7 +78,7 @@ export const posts: Post[] = [
     mediaType: 'video',
     caption: 'Cyberpunk city nights are a different kind of magic.',
     likesCount: 234,
-    commentsCount: commentsForPost1.length,
+    commentsCount: 2,
     createdAt: '3h ago',
     privacy: 'public',
     allowComments: true,
@@ -132,7 +123,7 @@ export const posts: Post[] = [
     mediaType: 'video',
     caption: 'Street style in the city that never sleeps.',
     likesCount: 890,
-    commentsCount: commentsForPost4.length,
+    commentsCount: 1,
     createdAt: '2d ago',
     privacy: 'public',
     allowComments: true,
@@ -169,64 +160,43 @@ export const posts: Post[] = [
     allowDuet: true,
     allowStitch: true,
   },
-  {
-    id: 'post-7',
-    author: users[2],
-    authorId: users[2].id,
-    mediaUrl: findImage('post-7'),
-    mediaType: 'image',
-    caption: 'My best co-worker.',
-    likesCount: 1023,
-    commentsCount: 0,
-    createdAt: '4d ago',
-    privacy: 'public',
-    allowComments: true,
-    allowDuet: true,
-    allowStitch: true,
-  },
-  {
-    id: 'post-8',
-    author: users[0],
-    authorId: users[0].id,
-    mediaUrl: 'https://storage.googleapis.com/gtv-videos-bucket/sample/TearsOfSteel.mp4',
-    mediaType: 'video',
-    caption: 'Pushing the limits.',
-    likesCount: 188,
-    commentsCount: 0,
-    createdAt: '4d ago',
-    privacy: 'public',
-    allowComments: true,
-    allowDuet: true,
-    allowStitch: true,
-  },
-    {
-    id: 'post-9',
-    author: users[3],
-    authorId: users[3].id,
-    mediaUrl: findImage('post-9'),
-    mediaType: 'image',
-    caption: 'Lines and shadows.',
-    likesCount: 341,
-    commentsCount: 0,
-    createdAt: '5d ago',
-    privacy: 'public',
-    allowComments: true,
-    allowDuet: true,
-    allowStitch: true,
-  },
-    {
-    id: 'post-10',
-    author: users[4],
-    authorId: users[4].id,
-    mediaUrl: findImage('post-10'),
-    mediaType: 'image',
-    caption: 'Late night coding session. #developerlife',
-    likesCount: 98,
-    commentsCount: 0,
-    createdAt: '5d ago',
-    privacy: 'public',
-    allowComments: true,
-    allowDuet: true,
-    allowStitch: true,
-  }
+];
+
+export const mockNotifications: Notification[] = [
+    { id: 'notif-1', type: 'follow', fromUser: users[2], read: false, createdAt: sub(new Date(), { minutes: 5 }) },
+    { id: 'notif-2', type: 'like', fromUser: users[1], post: posts[4], read: false, createdAt: sub(new Date(), { minutes: 30 }) },
+    { id: 'notif-3', type: 'comment', fromUser: users[3], post: posts[4], commentText: "So stylish! ✨", read: true, createdAt: sub(new Date(), { hours: 2 }) },
+    { id: 'notif-4', type: 'like', fromUser: users[4], post: posts[0], read: true, createdAt: sub(new Date(), { hours: 12 }) },
+    { id: 'notif-5', type: 'follow', fromUser: users[4], read: true, createdAt: sub(new Date(), { days: 1 }) },
+];
+
+export const mockStatuses: Status[] = [
+    { id: 'status-1', author: users[1], mediaUrl: findImage('status-1'), mediaType: 'image', createdAt: new Date() },
+    { id: 'status-2', author: users[2], mediaUrl: findImage('status-2'), mediaType: 'image', createdAt: new Date() },
+    { id: 'status-3', author: users[3], mediaUrl: findImage('status-3'), mediaType: 'image', createdAt: new Date() },
+    { id: 'status-4', author: users[4], mediaUrl: findImage('status-4'), mediaType: 'image', createdAt: new Date() },
+];
+
+export const mockChats: Chat[] = [
+    { 
+        id: 'chat-1',
+        participants: [currentUser, users[1]],
+        lastMessage: 'Hey, saw your latest post, amazing shot!',
+        lastMessageTimestamp: sub(new Date(), { hours: 1 }),
+        unreadCount: 2,
+    },
+    { 
+        id: 'chat-2',
+        participants: [currentUser, users[3]],
+        lastMessage: 'Let\'s collab sometime!',
+        lastMessageTimestamp: sub(new Date(), { days: 1 }),
+        unreadCount: 0,
+    },
+     { 
+        id: 'chat-3',
+        participants: [currentUser, users[4]],
+        lastMessage: 'Just wanted to say I love your work.',
+        lastMessageTimestamp: sub(new Date(), { days: 3 }),
+        unreadCount: 0,
+    },
 ];

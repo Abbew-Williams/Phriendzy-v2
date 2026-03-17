@@ -38,3 +38,29 @@ export type Comment = {
   likesCount?: number;
   parentId?: string | null;
 };
+
+export type Notification = {
+  id: string;
+  type: 'like' | 'comment' | 'follow';
+  fromUser: User;
+  post?: Post;
+  commentText?: string;
+  read: boolean;
+  createdAt: any; // Can be Firestore Timestamp or string
+};
+
+export type Status = {
+    id: string;
+    author: User;
+    mediaUrl: string;
+    mediaType: 'image' | 'video';
+    createdAt: any;
+};
+
+export type Chat = {
+    id: string;
+    participants: User[];
+    lastMessage: string;
+    lastMessageTimestamp: any;
+    unreadCount: number;
+};

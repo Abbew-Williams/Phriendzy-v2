@@ -50,6 +50,56 @@
         "parentId": { "type": "string", "description": "ID of the parent comment if this is a reply." }
       },
       "required": ["authorId", "postId", "text", "createdAt"]
+    },
+    "Notification": {
+      "title": "Notification",
+      "description": "Represents a notification for a user.",
+      "type": "object",
+      "properties": {
+        "type": { "type": "string", "enum": ["like", "comment", "follow"] },
+        "fromUserId": { "type": "string" },
+        "toUserId": { "type": "string" },
+        "postId": { "type": "string", "description": "ID of the post related to the notification (for likes/comments)." },
+        "commentId": { "type": "string", "description": "ID of the comment related to the notification." },
+        "read": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["type", "fromUserId", "toUserId", "read", "createdAt"]
+    },
+    "Message": {
+      "title": "Message",
+      "description": "A single message within a chat.",
+      "type": "object",
+      "properties": {
+        "authorId": { "type": "string" },
+        "text": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["authorId", "text", "createdAt"]
+    },
+    "Chat": {
+      "title": "Chat",
+      "description": "Represents a conversation between two or more users.",
+      "type": "object",
+      "properties": {
+        "participants": { "type": "array", "items": { "type": "string" } },
+        "lastMessage": { "type": "string" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["participants", "updatedAt"]
+    },
+    "Status": {
+      "title": "Status",
+      "description": "A temporary status update (story) from a user.",
+      "type": "object",
+      "properties": {
+        "authorId": { "type": "string" },
+        "mediaUrl": { "type": "string", "format": "uri" },
+        "mediaType": { "type": "string", "enum": ["image", "video"] },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "expiresAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["authorId", "mediaUrl", "mediaType", "createdAt", "expiresAt"]
     }
   },
   "auth": {
@@ -87,6 +137,22 @@
     "/posts/{postId}/comments/{commentId}": {
       "schema": { "$ref": "#/entities/Comment" },
       "description": "Subcollection for comments on a post."
+    },
+    "/users/{userId}/notifications/{notificationId}": {
+      "schema": { "$ref": "#/entities/Notification" },
+      "description": "Notifications for a specific user."
+    },
+    "/chats/{chatId}": {
+      "schema": { "$ref": "#/entities/Chat" },
+      "description": "Stores all chat sessions."
+    },
+    "/chats/{chatId}/messages/{messageId}": {
+      "schema": { "$ref": "#/entities/Message" },
+      "description": "Subcollection for messages within a chat."
+    },
+    "/users/{userId}/statuses/{statusId}": {
+      "schema": { "$ref": "#/entities/Status" },
+      "description": "Subcollection for a user's statuses (stories)."
     }
   }
 }
