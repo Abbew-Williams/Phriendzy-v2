@@ -64,3 +64,22 @@ export type Chat = {
     lastMessageTimestamp: any;
     unreadCount: number;
 };
+
+export type LiveStream = {
+    id: string;
+    hostId: string;
+    host: User; // Populated client-side
+    title: string;
+    status: 'active' | 'ended';
+    viewerCount: number;
+    createdAt: any;
+}
+
+export type LiveStreamComment = {
+    id: string;
+    authorId: string;
+    authorUsername: string;
+    authorAvatarUrl: string;
+    text: string;
+    createdAt: any; // Firestore timestamp
+}

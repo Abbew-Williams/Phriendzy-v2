@@ -6,24 +6,40 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { RadioTower } from 'lucide-react';
 import { useState } from 'react';
+import { useUser } from '@/firebase';
+import { useToast } from '@/hooks/use-toast';
+import { useRouter } from 'next/navigation';
 
 export default function ExplorePage() {
   const [searchTerm, setSearchTerm] = useState('');
+  const { appUser } = useUser();
+  const { toast } = useToast();
+  const router = useRouter();
   
   const filteredUsers = users.filter(user => 
     user.username.toLowerCase().includes(searchTerm.toLowerCase()) ||
     (user.name && user.name.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
+  const handleGoLiveClick = () => {
+    if (!appUser) {
+      toast({ title: 'Please log in to go live.', variant: 'destructive' });
+      return;
+    }
+    if ((appUser.followersCount || 0) < 10) {
+      toast({ title: 'Not eligible for Live', description: 'You need at least 10 followers to go live.', variant: 'destructive'});
+    } else {
+      router.push('/go-live');
+    }
+  }
+
   return (
     <div className="w-full max-w-4xl mx-auto p-4 sm:p-6 lg:p-8">
       <div className="flex items-center justify-between mb-6">
         <h1 className="font-headline text-3xl font-bold tracking-tight">Explore</h1>
-        <Button variant="ghost" asChild>
-          <Link href="/live/1" className="flex items-center gap-2 text-red-500 hover:text-red-500">
-            <RadioTower className="w-5 h-5" />
-            <span className="font-semibold">Live</span>
-          </Link>
+        <Button variant="ghost" onClick={handleGoLiveClick} className="flex items-center gap-2 text-red-500 hover:text-red-500">
+          <RadioTower className="w-5 h-5" />
+          <span className="font-semibold">Live</span>
         </Button>
       </div>
       <div className="mb-6">

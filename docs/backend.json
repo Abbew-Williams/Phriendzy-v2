@@ -56,7 +56,7 @@
       "description": "Represents a notification for a user.",
       "type": "object",
       "properties": {
-        "type": { "type": "string", "enum": ["like", "comment", "follow"] },
+        "type": { "type": "string", "enum": ["like", "comment", "follow", "live_award"] },
         "fromUserId": { "type": "string" },
         "toUserId": { "type": "string" },
         "postId": { "type": "string", "description": "ID of the post related to the notification (for likes/comments)." },
@@ -100,6 +100,32 @@
         "expiresAt": { "type": "string", "format": "date-time" }
       },
       "required": ["authorId", "mediaUrl", "mediaType", "createdAt", "expiresAt"]
+    },
+     "LiveStream": {
+      "title": "Live Stream",
+      "description": "Represents a live video stream.",
+      "type": "object",
+      "properties": {
+        "hostId": { "type": "string" },
+        "title": { "type": "string" },
+        "status": { "type": "string", "enum": ["active", "ended"] },
+        "viewerCount": { "type": "number" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["hostId", "title", "status", "createdAt"]
+    },
+    "LiveStreamComment": {
+      "title": "Live Stream Comment",
+      "description": "A comment on a live stream.",
+      "type": "object",
+      "properties": {
+        "authorId": { "type": "string" },
+        "authorUsername": { "type": "string" },
+        "authorAvatarUrl": { "type": "string", "format": "uri" },
+        "text": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["authorId", "authorUsername", "text", "createdAt"]
     }
   },
   "auth": {
@@ -153,6 +179,14 @@
     "/users/{userId}/statuses/{statusId}": {
       "schema": { "$ref": "#/entities/Status" },
       "description": "Subcollection for a user's statuses (stories)."
+    },
+    "/liveStreams/{liveId}": {
+      "schema": { "$ref": "#/entities/LiveStream" },
+      "description": "Stores all active and past live streams."
+    },
+    "/liveStreams/{liveId}/comments/{commentId}": {
+      "schema": { "$ref": "#/entities/LiveStreamComment" },
+      "description": "Subcollection for comments on a live stream."
     }
   }
 }
