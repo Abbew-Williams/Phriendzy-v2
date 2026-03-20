@@ -98,7 +98,7 @@ export default function UserProfilePage({ params }: { params: { username: string
 
   if (loading || authLoading) {
     return (
-      <div className="mx-auto w-full max-w-4xl p-4 sm:p-6 lg:p-8">
+      <div className="w-full p-4 sm:p-6 lg:p-8">
         <header className="flex flex-col sm:flex-row gap-8 items-center sm:items-start mb-10">
           <Skeleton className="w-24 h-24 sm:w-36 sm:h-36 rounded-full" />
           <div className="flex-1 space-y-4">
@@ -123,7 +123,7 @@ export default function UserProfilePage({ params }: { params: { username: string
 
   if (!profileUser) {
     return (
-        <div className="mx-auto w-full max-w-4xl p-4 sm:p-6 lg:p-8 flex items-center justify-center h-96">
+        <div className="w-full p-4 sm:p-6 lg:p-8 flex items-center justify-center h-96">
             <div className="text-center">
                 <h2 className="text-2xl font-bold">User not found</h2>
                 <p className="text-muted-foreground mt-2">The user @{params.username} does not exist.</p>
@@ -136,7 +136,7 @@ export default function UserProfilePage({ params }: { params: { username: string
   const userName = `${profileUser.firstName || ''} ${profileUser.lastName || ''}`.trim();
 
   return (
-    <div className="mx-auto w-full max-w-4xl p-4 sm:p-6 lg:p-8">
+    <div className="w-full p-4 sm:p-6 lg:p-8">
       <header className="flex flex-col sm:flex-row gap-8 items-center sm:items-start mb-10">
         <UserAvatar user={profileUser} className="w-24 h-24 sm:w-36 sm:h-36 object-cover" />
         <div className="flex-1 text-center sm:text-left">

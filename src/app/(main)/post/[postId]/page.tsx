@@ -49,7 +49,7 @@ export default function PostPage({ params }: { params: { postId: string } }) {
 
   if (loading) {
     return (
-      <div className="w-full max-w-lg mx-auto p-4 sm:p-6 lg:p-8">
+      <div className="w-full p-4 sm:p-6 lg:p-8">
         <Skeleton className="h-10 w-24 mb-4" />
         <Skeleton className="w-full h-[600px]" />
       </div>
@@ -58,7 +58,7 @@ export default function PostPage({ params }: { params: { postId: string } }) {
 
   if (!post) {
     return (
-      <div className="w-full max-w-lg mx-auto p-4 sm:p-6 lg:p-8 text-center">
+      <div className="w-full p-4 sm:p-6 lg:p-8 text-center">
          <Button variant="ghost" onClick={() => router.back()} className="mb-4">
             <ArrowLeft className="mr-2 h-4 w-4" /> Go Back
         </Button>

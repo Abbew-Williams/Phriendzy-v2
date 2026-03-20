@@ -24,7 +24,7 @@ function NotificationItem({ notification, currentUser }: { notification: Notific
 
   // Check initial follow status
   useEffect(() => {
-    if (!currentUser || notification.type !== 'follow') return;
+    if (!currentUser || !notification.fromUser || notification.type !== 'follow') return;
     const checkFollow = async () => {
         const firestore = useFirestore();
         if (!firestore) return;
@@ -37,7 +37,7 @@ function NotificationItem({ notification, currentUser }: { notification: Notific
   
   const handleFollowToggle = async (e: React.MouseEvent) => {
     e.preventDefault(); // Prevent link navigation
-    if (!currentUser) return;
+    if (!currentUser || !notification.fromUser) return;
     setIsFollowLoading(true);
     try {
         const newFollowState = await toggleFollow(currentUser.uid, notification.fromUser.uid);
@@ -176,7 +176,7 @@ export default function NotificationsPage() {
   }, [firestore, appUser]);
 
   return (
-    <div className="mx-auto w-full max-w-4xl p-4 sm:p-6 lg:p-8">
+    <div className="w-full p-4 sm:p-6 lg:p-8">
       <h1 className="font-headline text-3xl font-bold tracking-tight mb-6">Notifications</h1>
 
       <Tabs defaultValue="all" className="w-full">

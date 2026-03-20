@@ -34,7 +34,7 @@ export default function ExplorePage() {
   }
 
   return (
-    <div className="w-full max-w-4xl mx-auto p-4 sm:p-6 lg:p-8">
+    <div className="w-full p-4 sm:p-6 lg:p-8">
       <div className="flex items-center justify-between mb-6">
         <h1 className="font-headline text-3xl font-bold tracking-tight">Explore</h1>
         <Button variant="ghost" onClick={handleGoLiveClick} className="flex items-center gap-2 text-red-500 hover:text-red-500">
