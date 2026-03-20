@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useUser, useFirestore } from '@/firebase';
 import { useRouter, useParams } from 'next/navigation';
 import type { Chat, Message, User } from '@/lib/types';
+import Link from 'next/link';
 import {
   doc,
   getDoc,
@@ -40,7 +41,7 @@ function ChatMessage({ message, author, isSender }: { message: Message, author: 
 
 export default function ChatPage() {
   const { chatId } = useParams() as { chatId: string };
-  const { appUser } = useUser();
+  const { appUser, loading: userLoading } = useUser();
   const firestore = useFirestore();
   const router = useRouter();
 
@@ -130,7 +131,7 @@ export default function ChatPage() {
     }
   };
 
-  if (loading) {
+  if (loading || userLoading) {
     return (
         <div className="h-full flex flex-col">
             <header className="flex items-center gap-4 p-4 border-b">
@@ -184,7 +185,7 @@ export default function ChatPage() {
             onChange={e => setNewMessage(e.target.value)}
             onKeyPress={e => e.key === 'Enter' && handleSendMessage()}
           />
-          <Button size="icon" onClick={handleSendMessage} disabled={!newMessage.trim()}>
+          <Button size="icon" onClick={handleSendMessage} disabled={!newMessage.trim() || userLoading}>
             <Send />
           </Button>
         </div>
