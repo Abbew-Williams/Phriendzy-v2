@@ -14,7 +14,9 @@
         "bio": { "type": "string", "description": "A short bio for the user." },
         "followersCount": { "type": "number", "description": "Number of followers." },
         "followingCount": { "type": "number", "description": "Number of users this user is following." },
-        "usernameLastChanged": { "type": "string", "format": "date-time", "description": "The last time the username was changed." }
+        "usernameLastChanged": { "type": "string", "format": "date-time", "description": "The last time the username was changed." },
+        "role": { "type": "string", "enum": ["user", "admin"], "default": "user", "description": "User role." },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Timestamp of user creation." }
       },
       "required": ["uid", "username", "email"]
     },

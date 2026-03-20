@@ -3,6 +3,7 @@ export type User = {
   uid: string;
   username: string;
   name?: string;
+  email?: string;
   avatarUrl: string;
   bio: string;
   followersCount: number;
@@ -10,6 +11,8 @@ export type User = {
   firstName?: string;
   lastName?: string;
   usernameLastChanged?: any; // Can be a Firestore Timestamp
+  role?: 'user' | 'admin';
+  createdAt?: any;
 };
 
 export type Post = {

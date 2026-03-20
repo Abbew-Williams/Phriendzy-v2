@@ -12,6 +12,7 @@ import {
   User,
   Loader2,
   PlusSquare,
+  Shield,
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
@@ -102,6 +103,20 @@ export function MainSidebar() {
               </SidebarMenuButton>
             </SidebarMenuItem>
           ))}
+          {appUser?.role === 'admin' && (
+             <SidebarMenuItem>
+                <SidebarMenuButton
+                    asChild
+                    isActive={pathname.startsWith('/admin')}
+                    tooltip={{ children: 'Admin', side: 'right' }}
+                >
+                    <Link href="/admin">
+                        <Shield />
+                        <span>Admin</span>
+                    </Link>
+                </SidebarMenuButton>
+             </SidebarMenuItem>
+          )}
         </SidebarMenu>
       </SidebarContent>
       <SidebarFooter className="p-2">

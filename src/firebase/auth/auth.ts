@@ -35,6 +35,7 @@ export const signUpWithEmail = async (userData: {
       bio: '',
       followersCount: 0,
       followingCount: 0,
+      role: 'user',
       createdAt: serverTimestamp(),
       usernameLastChanged: serverTimestamp(),
     });
@@ -77,6 +78,7 @@ export const signInWithGoogle = async () => {
         bio: '',
         followersCount: 0,
         followingCount: 0,
+        role: 'user',
         createdAt: serverTimestamp(),
         usernameLastChanged: serverTimestamp(),
       });
