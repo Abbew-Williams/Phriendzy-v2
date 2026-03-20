@@ -17,6 +17,7 @@ import { useToast } from "@/hooks/use-toast";
 
 
 export default function UserProfilePage({ params }: { params: { username: string }}) {
+  const { username } = params;
   const { user: authUser, appUser: currentUser, loading: authLoading } = useUser();
   const firestore = useFirestore();
   const router = useRouter();
@@ -34,13 +35,13 @@ export default function UserProfilePage({ params }: { params: { username: string
       setLoading(true);
 
       // Redirect to own profile if username matches current user
-      if (currentUser && currentUser.username === params.username) {
+      if (currentUser && currentUser.username === username) {
         router.replace('/profile');
         return;
       }
       
       const usersRef = collection(firestore, "users");
-      const q = query(usersRef, where("username", "==", params.username), limit(1));
+      const q = query(usersRef, where("username", "==", username), limit(1));
       const querySnapshot = await getDocs(q);
 
       if (!querySnapshot.empty) {
@@ -70,7 +71,7 @@ export default function UserProfilePage({ params }: { params: { username: string
     if (!authLoading) {
         fetchUserProfile();
     }
-  }, [params.username, firestore, authLoading, currentUser, router]);
+  }, [username, firestore, authLoading, currentUser, router]);
 
   const handleFollowToggle = async () => {
     if (!currentUser || !profileUser) {
@@ -126,7 +127,7 @@ export default function UserProfilePage({ params }: { params: { username: string
         <div className="w-full p-4 sm:p-6 lg:p-8 flex items-center justify-center h-96">
             <div className="text-center">
                 <h2 className="text-2xl font-bold">User not found</h2>
-                <p className="text-muted-foreground mt-2">The user @{params.username} does not exist.</p>
+                <p className="text-muted-foreground mt-2">The user @{username} does not exist.</p>
                 <Button asChild className="mt-4"><Link href="/home">Go Home</Link></Button>
             </div>
         </div>
