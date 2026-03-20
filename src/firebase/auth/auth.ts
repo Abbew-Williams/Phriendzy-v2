@@ -7,6 +7,7 @@ import {
   GoogleAuthProvider,
   signOut as firebaseSignOut,
   User,
+  sendPasswordResetEmail,
 } from 'firebase/auth';
 import { doc, setDoc, getDoc, serverTimestamp } from 'firebase/firestore';
 import { auth, firestore } from '@/firebase';
@@ -97,5 +98,15 @@ export const signOut = async () => {
     return { error: null };
   } catch (error: any) {
     return { error };
+  }
+};
+
+// Send password reset email
+export const sendPasswordReset = async (email: string) => {
+  try {
+    await sendPasswordResetEmail(auth, email);
+    return { success: true, error: null };
+  } catch (error: any) {
+    return { success: false, error };
   }
 };
