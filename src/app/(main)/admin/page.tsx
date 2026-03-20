@@ -192,8 +192,8 @@ export default function AdminPage() {
                         <TableHeader>
                             <TableRow>
                                 <TableHead>User</TableHead>
-                                <TableHead className="hidden sm:table-cell">Email</TableHead>
-                                <TableHead className="hidden md:table-cell">Role</TableHead>
+                                <TableHead className="hidden sm:table-cell">Role</TableHead>
+                                <TableHead className="hidden md:table-cell">Email</TableHead>
                                 <TableHead className="hidden lg:table-cell">Joined</TableHead>
                                 <TableHead><span className="sr-only">Actions</span></TableHead>
                             </TableRow>
@@ -218,8 +218,8 @@ export default function AdminPage() {
                                             </div>
                                         </div>
                                     </TableCell>
-                                    <TableCell className="hidden sm:table-cell">{user.email}</TableCell>
-                                    <TableCell className="hidden md:table-cell">{user.role}</TableCell>
+                                    <TableCell className="hidden sm:table-cell">{user.role}</TableCell>
+                                    <TableCell className="hidden md:table-cell">{user.email}</TableCell>
                                     <TableCell className="hidden lg:table-cell">{user.createdAt ? format(user.createdAt.toDate(), 'PPP') : 'N/A'}</TableCell>
                                     <TableCell>
                                         <DropdownMenu>
