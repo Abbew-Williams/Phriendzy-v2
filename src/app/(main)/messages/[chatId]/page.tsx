@@ -53,22 +53,23 @@ export default function ChatPage() {
   const otherUser = chat?.participants.find(p => p.uid !== appUser?.uid);
 
   useEffect(() => {
-    if (!firestore || !chatId) return;
+    if (!firestore || !chatId || !appUser) return;
 
+    setLoading(true);
     const chatRef = doc(firestore, 'chats', chatId);
 
     const unsubscribeChat = onSnapshot(chatRef, async (docSnap) => {
       if (docSnap.exists()) {
         const data = docSnap.data();
         // Ensure current user is part of the chat
-        if (!data.participants.includes(appUser?.uid)) {
+        if (!data.participants.includes(appUser.uid)) {
             router.push('/messages');
             return;
         }
 
         const participantsData = await Promise.all(
           data.participants.map(async (userId: string) => {
-            if (userId === appUser?.uid) return appUser;
+            if (userId === appUser.uid) return appUser;
             const userRef = doc(firestore, 'users', userId);
             const userSnap = await getDoc(userRef);
             return userSnap.exists() ? { id: userSnap.id, uid: userSnap.id, ...userSnap.data() } as User : null;
