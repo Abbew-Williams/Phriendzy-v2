@@ -16,8 +16,7 @@ import { toggleFollow } from "@/firebase/firestore/interactions";
 import { useToast } from "@/hooks/use-toast";
 
 
-export default function UserProfilePage({ params }: { params: { username: string }}) {
-  const { username } = params;
+export default function UserProfilePage({ params: { username } }: { params: { username: string }}) {
   const { user: authUser, appUser: currentUser, loading: authLoading } = useUser();
   const firestore = useFirestore();
   const router = useRouter();
@@ -169,15 +168,15 @@ export default function UserProfilePage({ params }: { params: { username: string
         <TabsContent value="posts">
           <div className="grid grid-cols-3 gap-1 sm:gap-4 mt-6">
             {userPosts.map(post => (
-              <div key={post.id} className="relative aspect-square">
+              <Link href={`/post/${post.id}`} key={post.id} className="relative aspect-square">
                 <Image
                   src={post.mediaUrl}
-                  alt={post.caption}
+                  alt={post.caption || 'User post'}
                   fill
                   className="object-cover rounded-md"
                   sizes="(max-width: 768px) 33vw, 33vw"
                 />
-              </div>
+              </Link>
             ))}
           </div>
            {userPosts.length === 0 && (
