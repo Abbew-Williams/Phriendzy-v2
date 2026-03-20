@@ -6,7 +6,7 @@ import { UserAvatar } from "@/components/user-avatar";
 import { Button } from "@/components/ui/button";
 import { Settings, Plus, UserCheck, UserPlus } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useRouter } from "next/navigation";
+import { useRouter, useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import Link from "next/link";
@@ -16,7 +16,9 @@ import { toggleFollow } from "@/firebase/firestore/interactions";
 import { useToast } from "@/hooks/use-toast";
 
 
-export default function UserProfilePage({ params: { username } }: { params: { username: string }}) {
+export default function UserProfilePage() {
+  const params = useParams();
+  const username = params.username as string;
   const { user: authUser, appUser: currentUser, loading: authLoading } = useUser();
   const firestore = useFirestore();
   const router = useRouter();
