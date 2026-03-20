@@ -9,7 +9,7 @@ import { useUser, useFirestore } from '@/firebase';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
-import { collection, query, where, onSnapshot, getDoc, doc, limit, getDocs } from 'firebase/firestore';
+import { collection, query, where, onSnapshot, getDoc, doc, limit, getDocs, orderBy } from 'firebase/firestore';
 import { formatDistanceToNow } from 'date-fns';
 import { useRouter } from 'next/navigation';
 import { getOrCreateChat } from '@/firebase/firestore/chats';
