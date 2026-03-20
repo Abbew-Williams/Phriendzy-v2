@@ -2,7 +2,7 @@
 
 import { UserAvatar } from '@/components/user-avatar';
 import { SearchBar } from '@/components/search-bar';
-import type { Status, Chat } from '@/lib/types';
+import type { Status, Chat, User } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Plus } from 'lucide-react';
 import { useUser, useFirestore } from '@/firebase';
@@ -46,7 +46,7 @@ function MyStatus() {
 
 function ChatItem({ chat }: { chat: Chat }) {
   const { appUser } = useUser();
-  const otherUser = chat.participants.find(p => p.id !== appUser?.uid);
+  const otherUser = chat.participants.find(p => p.uid !== appUser?.uid);
 
   if (!otherUser) return null;
   
@@ -115,19 +115,22 @@ export default function MessagesPage() {
                         if (userId === appUser.uid) return appUser;
                         const userRef = doc(firestore, 'users', userId);
                         const userSnap = await getDoc(userRef);
-                        return userSnap.data();
+                        if (userSnap.exists()) {
+                            return { id: userSnap.id, ...userSnap.data() } as User;
+                        }
+                        return null;
                     })
                 );
 
                 return {
                     id: chatDoc.id,
-                    participants: participantsData,
+                    participants: participantsData.filter(p => p) as User[],
                     lastMessage: data.lastMessage || 'No messages yet.',
                     lastMessageTimestamp: data.updatedAt,
                     unreadCount: 0, // Placeholder
                 } as Chat;
             }));
-            setChats(chatsData);
+            setChats(chatsData.filter(c => c.participants.length > 1));
             setLoading(false);
         }));
 

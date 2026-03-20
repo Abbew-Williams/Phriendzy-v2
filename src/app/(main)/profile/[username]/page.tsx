@@ -47,7 +47,7 @@ export default function UserProfilePage() {
 
       if (!querySnapshot.empty) {
         const userDoc = querySnapshot.docs[0];
-        const userData = userDoc.data() as AppUser;
+        const userData = { ...userDoc.data(), id: userDoc.id } as AppUser;
         setProfileUser(userData);
 
         // Fetch user posts

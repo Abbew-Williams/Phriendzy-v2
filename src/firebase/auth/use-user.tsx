@@ -18,7 +18,7 @@ export function useUser() {
         const userRef = doc(firestore, 'users', authUser.uid);
         const userSnap = await getDoc(userRef);
         if (userSnap.exists()) {
-          setAppUser(userSnap.data() as AppUser);
+          setAppUser({ id: userSnap.id, ...userSnap.data() } as AppUser);
         } else {
           setAppUser(null)
         }

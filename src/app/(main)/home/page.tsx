@@ -27,7 +27,7 @@ export default function HomePage() {
           const postData = postDoc.data();
           const authorRef = doc(firestore, 'users', postData.authorId);
           const authorSnap = await getDoc(authorRef);
-          const author = authorSnap.exists() ? authorSnap.data() as User : null;
+          const author = authorSnap.exists() ? { id: authorSnap.id, ...authorSnap.data() } as User : null;
 
           return {
             ...postData,
