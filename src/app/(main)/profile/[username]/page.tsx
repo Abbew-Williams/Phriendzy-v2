@@ -10,7 +10,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import Link from "next/link";
-import { collection, query, where, getDocs, doc, getDoc, orderBy } from 'firebase/firestore';
+import { collection, query, where, getDocs, doc, getDoc, orderBy, limit } from 'firebase/firestore';
 import type { User as AppUser, Post } from "@/lib/types";
 import { toggleFollow } from "@/firebase/firestore/interactions";
 import { useToast } from "@/hooks/use-toast";
