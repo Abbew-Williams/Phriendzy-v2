@@ -91,7 +91,7 @@ export default function GoLivePage() {
     };
 
     return (
-        <div className="mx-auto w-full max-w-4xl p-4 sm:p-6 lg:p-8 flex items-center justify-center min-h-[calc(100vh-8rem)]">
+        <div className="w-full p-4 sm:p-6 lg:p-8 flex items-center justify-center min-h-[calc(100vh-8rem)]">
             <Card className="w-full max-w-2xl">
                 <CardHeader>
                     <div className="flex items-center gap-4">

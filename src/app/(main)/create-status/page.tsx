@@ -79,7 +79,7 @@ export default function CreateStatusPage() {
 
   if (!previewUrl) {
      return (
-      <div className="mx-auto w-full max-w-4xl p-4 sm:p-6 lg:p-8 flex flex-col items-center justify-center h-[calc(100vh-10rem)]">
+      <div className="w-full p-4 sm:p-6 lg:p-8 flex flex-col items-center justify-center h-[calc(100vh-10rem)]">
         <Card className="w-full max-w-lg">
           <CardHeader>
              <div className="flex items-center gap-4">
@@ -105,9 +105,9 @@ export default function CreateStatusPage() {
   }
   
   return (
-     <div className="mx-auto w-full max-w-5xl p-4 sm:p-6 lg:p-8">
+     <div className="w-full p-4 sm:p-6 lg:p-8">
         <form onSubmit={handleSubmit}>
-            <Card className="overflow-hidden">
+            <Card className="overflow-hidden md:max-w-5xl md:mx-auto">
                 <CardHeader>
                     <div className="flex items-center justify-between">
                          <div className="flex items-center gap-4">

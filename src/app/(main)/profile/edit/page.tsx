@@ -215,20 +215,22 @@ export default function EditProfilePage() {
 
   if (loading || !appUser) {
     return (
-      <div className="mx-auto w-full max-w-2xl p-4 sm:p-6 lg:p-8 space-y-8">
-        <h1 className="font-headline text-3xl font-bold tracking-tight">Edit Profile</h1>
-        <div className="flex items-center gap-4">
-          <Skeleton className="w-20 h-20 rounded-full" />
-          <div className="space-y-2">
-            <Skeleton className="h-4 w-24" />
-            <Skeleton className="h-4 w-32" />
+      <div className="w-full p-4 sm:p-6 lg:p-8">
+        <div className="mx-auto max-w-2xl">
+          <h1 className="font-headline text-3xl font-bold tracking-tight">Edit Profile</h1>
+          <div className="flex items-center gap-4 mt-8">
+            <Skeleton className="w-20 h-20 rounded-full" />
+            <div className="space-y-2">
+              <Skeleton className="h-4 w-24" />
+              <Skeleton className="h-4 w-32" />
+            </div>
           </div>
-        </div>
-        <div className="space-y-4">
-          <Skeleton className="h-10 w-full" />
-          <Skeleton className="h-10 w-full" />
-          <Skeleton className="h-20 w-full" />
-          <Skeleton className="h-10 w-24" />
+          <div className="space-y-4 mt-8">
+            <Skeleton className="h-10 w-full" />
+            <Skeleton className="h-10 w-full" />
+            <Skeleton className="h-20 w-full" />
+            <Skeleton className="h-10 w-24" />
+          </div>
         </div>
       </div>
     );
@@ -261,78 +263,80 @@ export default function EditProfilePage() {
   };
 
   return (
-    <div className="mx-auto w-full max-w-2xl p-4 sm:p-6 lg:p-8">
-      <h1 className="font-headline text-3xl font-bold tracking-tight mb-8">Edit Profile</h1>
-      <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-          <div className="flex items-center gap-6">
-            <UserAvatar user={{ ...appUser, avatarUrl: avatarPreview || appUser.avatarUrl }} className="w-20 h-20" />
-            <div>
-              <h2 className="text-xl font-semibold">{appUser.username}</h2>
-              <Button type="button" variant="link" className="p-0 h-auto text-primary" onClick={() => fileInputRef.current?.click()}>
-                Change profile photo
-              </Button>
-              <input type="file" ref={fileInputRef} onChange={handleAvatarChange} className="hidden" accept="image/png, image/jpeg, image/gif" />
+    <div className="w-full p-4 sm:p-6 lg:p-8">
+      <div className="mx-auto max-w-2xl">
+        <h1 className="font-headline text-3xl font-bold tracking-tight mb-8">Edit Profile</h1>
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+            <div className="flex items-center gap-6">
+              <UserAvatar user={{ ...appUser, avatarUrl: avatarPreview || appUser.avatarUrl }} className="w-20 h-20" />
+              <div>
+                <h2 className="text-xl font-semibold">{appUser.username}</h2>
+                <Button type="button" variant="link" className="p-0 h-auto text-primary" onClick={() => fileInputRef.current?.click()}>
+                  Change profile photo
+                </Button>
+                <input type="file" ref={fileInputRef} onChange={handleAvatarChange} className="hidden" accept="image/png, image/jpeg, image/gif" />
+              </div>
             </div>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="firstName"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>First Name</FormLabel>
+                    <FormControl>
+                      <Input {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="lastName"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Last Name</FormLabel>
+                    <FormControl>
+                      <Input {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
             <FormField
               control={form.control}
-              name="firstName"
+              name="username"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>First Name</FormLabel>
+                  <FormLabel>Username</FormLabel>
                   <FormControl>
-                    <Input {...field} />
+                    <Input {...field} disabled={isUsernameFieldDisabled} />
                   </FormControl>
-                  <FormMessage />
+                  {renderUsernameFeedback()}
                 </FormItem>
               )}
             />
             <FormField
               control={form.control}
-              name="lastName"
+              name="bio"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Last Name</FormLabel>
+                  <FormLabel>Bio</FormLabel>
                   <FormControl>
-                    <Input {...field} />
+                    <Textarea {...field} placeholder="Tell us about yourself" />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
-          </div>
-           <FormField
-            control={form.control}
-            name="username"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Username</FormLabel>
-                <FormControl>
-                  <Input {...field} disabled={isUsernameFieldDisabled} />
-                </FormControl>
-                {renderUsernameFeedback()}
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="bio"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Bio</FormLabel>
-                <FormControl>
-                  <Textarea {...field} placeholder="Tell us about yourself" />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
 
-          <Button type="submit" loading={isSaving} disabled={!hasChanges || isSaving}>Save Changes</Button>
-        </form>
-      </Form>
+            <Button type="submit" loading={isSaving} disabled={!hasChanges || isSaving}>Save Changes</Button>
+          </form>
+        </Form>
+      </div>
     </div>
   );
 }

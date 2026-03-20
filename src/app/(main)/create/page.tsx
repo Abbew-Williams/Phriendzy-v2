@@ -161,7 +161,7 @@ export default function CreatePage() {
   
   if (step === 'select') {
     return (
-      <div className="mx-auto w-full max-w-4xl p-4 sm:p-6 lg:p-8 flex flex-col items-center justify-center h-[calc(100vh-10rem)]">
+      <div className="w-full p-4 sm:p-6 lg:p-8 flex flex-col items-center justify-center h-[calc(100vh-10rem)]">
         <Card className="w-full max-w-lg">
           <CardContent className="p-6">
              <div className="relative flex flex-col items-center justify-center w-full h-80 border-2 border-dashed rounded-lg cursor-pointer hover:bg-muted">
@@ -180,8 +180,8 @@ export default function CreatePage() {
 
   if (step === 'edit') {
     return (
-        <div className="mx-auto w-full max-w-5xl p-4 sm:p-6 lg:p-8">
-            <Card className="overflow-hidden">
+        <div className="w-full p-4 sm:p-6 lg:p-8">
+            <Card className="overflow-hidden md:max-w-5xl md:mx-auto">
                 <CardHeader>
                     <div className="flex items-center gap-4">
                         <Button variant="ghost" size="icon" onClick={() => discardPost()}>
@@ -217,9 +217,9 @@ export default function CreatePage() {
   }
 
   return (
-    <div className="mx-auto w-full max-w-5xl p-4 sm:p-6 lg:p-8">
+    <div className="w-full p-4 sm:p-6 lg:p-8">
       <form onSubmit={handleSubmit}>
-        <Card className="overflow-hidden">
+        <Card className="overflow-hidden md:max-w-5xl md:mx-auto">
           <CardHeader>
               <div className="flex items-center gap-4">
                   <Button variant="ghost" size="icon" onClick={() => setStep('edit')}>
