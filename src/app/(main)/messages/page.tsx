@@ -9,8 +9,11 @@ import { useUser, useFirestore } from '@/firebase';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
-import { collection, query, where, onSnapshot, getDoc, doc, limit } from 'firebase/firestore';
+import { collection, query, where, onSnapshot, getDoc, doc, limit, getDocs } from 'firebase/firestore';
 import { formatDistanceToNow } from 'date-fns';
+import { useRouter } from 'next/navigation';
+import { getOrCreateChat } from '@/firebase/firestore/chats';
+import { Skeleton } from '@/components/ui/skeleton';
 
 function StatusItem({ status }: { status: Status }) {
   return (
@@ -53,28 +56,36 @@ function ChatItem({ chat }: { chat: Chat }) {
   const timeAgo = chat.lastMessageTimestamp ? formatDistanceToNow(chat.lastMessageTimestamp.toDate(), { addSuffix: true }) : '';
 
   return (
-    <div className="flex items-center gap-4 p-2 rounded-lg hover:bg-muted cursor-pointer">
-      <UserAvatar user={otherUser} className="w-12 h-12" />
-      <div className="flex-1 min-w-0">
-        <div className="flex justify-between items-center">
-          <p className="font-bold truncate">{otherUser.username}</p>
-          <p className="text-xs text-muted-foreground flex-shrink-0">{timeAgo}</p>
-        </div>
-        <div className="flex justify-between items-center">
-            <p className={`text-sm truncate ${chat.unreadCount > 0 ? 'text-foreground font-semibold' : 'text-muted-foreground'}`}>{chat.lastMessage}</p>
-            {chat.unreadCount > 0 && <div className="w-2 h-2 rounded-full bg-primary flex-shrink-0 ml-2"></div>}
+    <Link href={`/messages/${chat.id}`}>
+      <div className="flex items-center gap-4 p-2 rounded-lg hover:bg-muted cursor-pointer">
+        <UserAvatar user={otherUser} className="w-12 h-12" />
+        <div className="flex-1 min-w-0">
+          <div className="flex justify-between items-center">
+            <p className="font-bold truncate">{otherUser.username}</p>
+            <p className="text-xs text-muted-foreground flex-shrink-0">{timeAgo}</p>
+          </div>
+          <div className="flex justify-between items-center">
+              <p className={`text-sm truncate ${chat.unreadCount > 0 ? 'text-foreground font-semibold' : 'text-muted-foreground'}`}>{chat.lastMessage}</p>
+              {chat.unreadCount > 0 && <div className="w-2 h-2 rounded-full bg-primary flex-shrink-0 ml-2"></div>}
+          </div>
         </div>
       </div>
-    </div>
+    </Link>
   )
 }
 
 export default function MessagesPage() {
     const { appUser } = useUser();
     const firestore = useFirestore();
+    const router = useRouter();
+    
     const [chats, setChats] = useState<Chat[]>([]);
     const [statuses, setStatuses] = useState<Status[]>([]);
     const [loading, setLoading] = useState(true);
+
+    const [searchTerm, setSearchTerm] = useState('');
+    const [isSearching, setIsSearching] = useState(false);
+    const [searchResults, setSearchResults] = useState<User[]>([]);
 
     // Fetch user's own active statuses
     useEffect(() => {
@@ -104,7 +115,7 @@ export default function MessagesPage() {
     useEffect(() => {
         if (!firestore || !appUser) return;
         setLoading(true);
-        const q = query(collection(firestore, 'chats'), where('participants', 'array-contains', appUser.uid));
+        const q = query(collection(firestore, 'chats'), where('participants', 'array-contains', appUser.uid), orderBy('updatedAt', 'desc'));
 
         const unsubscribe = onSnapshot(q, async (snapshot) => {
             const chatsData = await Promise.all(snapshot.docs.map(async chatDoc => {
@@ -116,7 +127,7 @@ export default function MessagesPage() {
                         const userRef = doc(firestore, 'users', userId);
                         const userSnap = await getDoc(userRef);
                         if (userSnap.exists()) {
-                            return { id: userSnap.id, ...userSnap.data() } as User;
+                            return { id: userSnap.id, uid: userSnap.id, ...userSnap.data() } as User;
                         }
                         return null;
                     })
@@ -137,6 +148,55 @@ export default function MessagesPage() {
         return () => unsubscribe();
     }, [firestore, appUser]);
 
+    // Search for users
+    useEffect(() => {
+        if (!firestore || !searchTerm.trim()) {
+            setSearchResults([]);
+            setIsSearching(false);
+            return;
+        }
+
+        const searchUsers = async () => {
+            setIsSearching(true);
+            try {
+                const usersRef = collection(firestore, 'users');
+                const q = query(
+                    usersRef,
+                    where('username', '>=', searchTerm.toLowerCase()),
+                    where('username', '<=', searchTerm.toLowerCase() + '\uf8ff'),
+                    limit(10)
+                );
+                const querySnapshot = await getDocs(q);
+                const usersData = querySnapshot.docs
+                    .map(doc => ({id: doc.id, uid: doc.id, ...doc.data()} as User))
+                    .filter(u => u.uid !== appUser?.uid);
+                setSearchResults(usersData);
+            } catch (error) {
+                console.error("Error searching users:", error);
+            } finally {
+                setIsSearching(false);
+            }
+        };
+
+        const debounce = setTimeout(() => {
+            searchUsers();
+        }, 300);
+
+        return () => clearTimeout(debounce);
+
+    }, [searchTerm, firestore, appUser]);
+    
+    const handleUserSelect = async (targetUser: User) => {
+        if (!appUser || !firestore) return;
+        
+        try {
+            const chatId = await getOrCreateChat(appUser.uid, targetUser.uid, firestore);
+            router.push(`/messages/${chatId}`);
+        } catch (error) {
+            console.error("Error creating or getting chat:", error);
+        }
+    };
+
 
   return (
     <div className="w-full p-4 sm:p-6 lg:p-8">
@@ -153,15 +213,57 @@ export default function MessagesPage() {
       </div>
       
       <div className="mb-6">
-        <SearchBar placeholder="Search messages" />
+        <SearchBar 
+            placeholder="Search for people to message..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+        />
       </div>
 
-      <div className="space-y-1">
-        {chats.map(chat => <ChatItem key={chat.id} chat={chat} />)}
-      </div>
-       {chats.length === 0 && !loading && (
-        <div className="flex items-center justify-center h-64 border-2 border-dashed rounded-lg">
-          <p className="text-muted-foreground">Your conversations will appear here.</p>
+      {searchTerm.trim() ? (
+          <div className="space-y-1">
+            <h2 className="font-bold text-lg mb-2">Results</h2>
+            {isSearching && [...Array(3)].map((_, i) => (
+                <div key={i} className="flex items-center gap-4 p-2">
+                    <Skeleton className="w-12 h-12 rounded-full" />
+                    <div className="space-y-2">
+                        <Skeleton className="h-4 w-24" />
+                        <Skeleton className="h-3 w-16" />
+                    </div>
+                </div>
+            ))}
+            {!isSearching && searchResults.length === 0 && (
+                <p className="text-muted-foreground text-center py-8">No users found for &quot;{searchTerm}&quot;</p>
+            )}
+            {searchResults.map(user => (
+                <div key={user.id} onClick={() => handleUserSelect(user)} className="flex items-center gap-4 p-2 rounded-lg hover:bg-muted cursor-pointer">
+                    <UserAvatar user={user} className="w-12 h-12" />
+                    <div className="flex-1 min-w-0">
+                        <p className="font-bold truncate">{user.username}</p>
+                        <p className="text-sm text-muted-foreground truncate">{user.name}</p>
+                    </div>
+                </div>
+            ))}
+          </div>
+      ) : (
+        <div className="space-y-1">
+            {loading ? (
+                [...Array(3)].map((_, i) => (
+                    <div key={i} className="flex items-center gap-4 p-2">
+                        <Skeleton className="w-12 h-12 rounded-full" />
+                        <div className="flex-1 space-y-2">
+                            <Skeleton className="h-4 w-24" />
+                            <Skeleton className="h-3 w-48" />
+                        </div>
+                    </div>
+                ))
+            ) : chats.length > 0 ? (
+                chats.map(chat => <ChatItem key={chat.id} chat={chat} />)
+            ) : (
+                <div className="flex items-center justify-center h-64 border-2 border-dashed rounded-lg">
+                    <p className="text-muted-foreground">Your conversations will appear here.</p>
+                </div>
+            )}
         </div>
        )}
     </div>

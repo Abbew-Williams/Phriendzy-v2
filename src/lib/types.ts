@@ -66,7 +66,16 @@ export type Chat = {
     lastMessage: string;
     lastMessageTimestamp: any;
     unreadCount: number;
+    updatedAt: any;
+    createdAt: any;
 };
+
+export type Message = {
+    id: string;
+    authorId: string;
+    text: string;
+    createdAt: any; // Can be Firestore Timestamp
+}
 
 export type LiveStream = {
     id: string;
