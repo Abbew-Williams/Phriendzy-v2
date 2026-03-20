@@ -9,9 +9,10 @@ import { useState, useEffect, useMemo } from 'react';
 import { useUser, useFirestore } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
-import { collection, getDocs, limit, query, where } from 'firebase/firestore';
+import { collection, getDocs, limit, query, where, doc, getDoc } from 'firebase/firestore';
 import type { User as AppUser } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
+import { toggleFollow } from '@/firebase/firestore/interactions';
 
 function UserSkeleton() {
     return (
@@ -35,6 +36,8 @@ export default function ExplorePage() {
 
   const [suggestedUsers, setSuggestedUsers] = useState<AppUser[]>([]);
   const [loading, setLoading] = useState(true);
+  const [followingStatus, setFollowingStatus] = useState<Record<string, boolean>>({});
+  const [followLoading, setFollowLoading] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     const fetchUsers = async () => {
@@ -50,6 +53,19 @@ export default function ExplorePage() {
             const querySnapshot = await getDocs(usersQuery);
             const usersData = querySnapshot.docs.map(doc => ({id: doc.id, ...doc.data()} as AppUser));
             setSuggestedUsers(usersData);
+
+            // If logged in, check follow status for each suggested user
+            if (appUser) {
+                const followingPromises = usersData.map(user => 
+                    getDoc(doc(firestore, 'users', appUser.uid, 'following', user.uid))
+                );
+                const followingSnapshots = await Promise.all(followingPromises);
+                const newFollowingStatus: Record<string, boolean> = {};
+                followingSnapshots.forEach((snap, index) => {
+                    newFollowingStatus[usersData[index].uid] = snap.exists();
+                });
+                setFollowingStatus(newFollowingStatus);
+            }
         } catch (error) {
             console.error("Error fetching users:", error);
             toast({ title: "Error", description: "Could not fetch creators.", variant: "destructive" });
@@ -59,6 +75,37 @@ export default function ExplorePage() {
     }
     fetchUsers();
   }, [firestore, appUser, toast]);
+  
+  const handleFollowToggle = async (targetUserId: string) => {
+    if (!appUser) {
+      toast({ title: 'Please log in to follow users.', variant: 'destructive' });
+      return;
+    }
+    
+    setFollowLoading(prev => ({...prev, [targetUserId]: true}));
+    
+    try {
+        const newFollowState = await toggleFollow(appUser.uid, targetUserId);
+        setFollowingStatus(prev => ({...prev, [targetUserId]: newFollowState}));
+
+        setSuggestedUsers(users => users.map(u => {
+            if (u.uid === targetUserId) {
+                const currentFollowers = u.followersCount || 0;
+                return {
+                    ...u,
+                    followersCount: currentFollowers + (newFollowState ? 1 : -1)
+                }
+            }
+            return u;
+        }));
+
+    } catch (error) {
+        console.error("Error toggling follow:", error);
+        toast({ title: 'Error', description: 'Could not update follow status.'});
+    } finally {
+        setFollowLoading(prev => ({...prev, [targetUserId]: false}));
+    }
+  }
 
   const filteredUsers = useMemo(() => {
     if (!searchTerm) {
@@ -114,7 +161,16 @@ export default function ExplorePage() {
                 <p className="text-sm text-muted-foreground">{user.name}</p>
                 <p className="text-sm text-muted-foreground">{(user.followersCount || 0).toLocaleString()} followers</p>
                 </div>
-                <Button size="sm" onClick={(e) => { e.preventDefault(); /* todo: handle follow */}}>Follow</Button>
+                <Button 
+                  size="sm" 
+                  variant={followingStatus[user.uid] ? 'secondary' : 'default'}
+                  loading={followLoading[user.uid]}
+                  onClick={(e) => { 
+                      e.preventDefault();
+                      handleFollowToggle(user.uid);
+                  }}>
+                  {followingStatus[user.uid] ? 'Following' : 'Follow'}
+                </Button>
             </Link>
             ))
         ) : (

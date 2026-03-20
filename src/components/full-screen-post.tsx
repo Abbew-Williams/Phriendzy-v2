@@ -8,7 +8,7 @@ import { doc, getDoc } from 'firebase/firestore';
 
 import type { Post } from '@/lib/types';
 import { useUser, useFirestore } from '@/firebase';
-import { toggleLike, toggleSave } from '@/firebase/firestore/interactions';
+import { toggleLike, toggleSave, toggleFollow } from '@/firebase/firestore/interactions';
 import { UserAvatar } from '@/components/user-avatar';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -20,7 +20,7 @@ type FullScreenPostProps = {
 };
 
 export function FullScreenPost({ post: initialPost, onInteraction }: FullScreenPostProps) {
-  const { user } = useUser();
+  const { user, appUser } = useUser();
   const firestore = useFirestore();
   const [post, setPost] = useState(initialPost);
   const [isLiked, setIsLiked] = useState(false);
@@ -31,20 +31,32 @@ export function FullScreenPost({ post: initialPost, onInteraction }: FullScreenP
   const videoRef = useRef<HTMLVideoElement>(null);
   const [isMuted, setIsMuted] = useState(true);
 
-  // Fetch initial like and save status
+  const [isFollowingAuthor, setIsFollowingAuthor] = useState(false);
+  const [followLoading, setFollowLoading] = useState(false);
+
+  // Fetch initial like, save, and follow status
   useEffect(() => {
     if (!user || !post) return;
     const checkStatus = async () => {
+      // Like status
       const likeRef = doc(firestore, 'users', user.uid, 'likes', post.id);
       const likeSnap = await getDoc(likeRef);
       setIsLiked(likeSnap.exists());
 
+      // Save status
       const saveRef = doc(firestore, 'users', user.uid, 'saved', post.id);
       const saveSnap = await getDoc(saveRef);
       setIsSaved(saveSnap.exists());
+      
+      // Follow status
+      if (appUser && post.authorId && appUser.uid !== post.authorId) {
+        const followRef = doc(firestore, 'users', appUser.uid, 'following', post.authorId);
+        const followSnap = await getDoc(followRef);
+        setIsFollowingAuthor(followSnap.exists());
+      }
     };
     checkStatus();
-  }, [user, post, firestore]);
+  }, [user, appUser, post, firestore]);
 
   const handleLike = async () => {
     if (!onInteraction() || !user) return;
@@ -105,6 +117,23 @@ export function FullScreenPost({ post: initialPost, onInteraction }: FullScreenP
     }
   }
 
+  const handleFollowAuthor = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!onInteraction() || !appUser || !post.authorId) return;
+
+    setFollowLoading(true);
+
+    try {
+        const newState = await toggleFollow(appUser.uid, post.authorId);
+        setIsFollowingAuthor(newState);
+    } catch(err) {
+        console.error("Failed to follow user", err);
+    } finally {
+        setFollowLoading(false);
+    }
+  }
+
   useEffect(() => {
     if (videoRef.current) {
         setIsMuted(videoRef.current.muted);
@@ -156,15 +185,21 @@ export function FullScreenPost({ post: initialPost, onInteraction }: FullScreenP
           </div>
 
           <div className="flex flex-col items-center gap-2">
-             <Link href={`/profile/${post.author.username}`}>
-                <div className="relative cursor-pointer">
+             <div className="relative">
+                <Link href={`/profile/${post.author.username}`}>
                     <UserAvatar user={post.author} className="w-12 h-12 border-2 border-white"/>
-                    {/* TODO: Add logic to only show when not following */}
-                    <div className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-6 h-6 bg-primary rounded-full flex items-center justify-center border-2 border-background">
-                        <Plus className="w-4 h-4 text-primary-foreground" />
-                    </div>
-                </div>
-             </Link>
+                </Link>
+                {appUser && appUser.uid !== post.author.uid && !isFollowingAuthor && (
+                    <Button 
+                        size="icon" 
+                        className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-6 h-6 rounded-full border-2 border-background"
+                        onClick={handleFollowAuthor}
+                        loading={followLoading}
+                    >
+                        {!followLoading && <Plus className="w-4 h-4 text-primary-foreground" />}
+                    </Button>
+                )}
+            </div>
             <div className="flex flex-col items-center">
               <Button variant="ghost" size="icon" className="text-white hover:text-white hover:bg-transparent" onClick={handleLike}>
                 <Heart className={cn("w-8 h-8 transition-colors", isLiked && 'fill-red-500 text-red-500')} />
