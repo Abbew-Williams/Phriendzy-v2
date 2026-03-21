@@ -137,6 +137,15 @@
         "goLiveFollowerMinimum": {
           "type": "number",
           "description": "The minimum number of followers a user needs to go live."
+        },
+        "aiContentScanningEnabled": {
+          "type": "boolean",
+          "description": "Enable AI to automatically scan content for violations."
+        },
+        "aiViolationSensitivity": {
+          "type": "string",
+          "enum": ["low", "medium", "high"],
+          "description": "The sensitivity level for AI violation detection."
         }
       }
     }

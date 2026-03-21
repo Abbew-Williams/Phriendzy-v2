@@ -1,13 +1,13 @@
 'use client';
 
-import { BarChart2, Users, Settings, ShieldAlert, UserPlus, ArrowUpRight } from 'lucide-react';
+import { BarChart2, Users, Settings, UserPlus, Heart, MessageSquare } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useUser, useFirestore } from '@/firebase';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState, useMemo } from 'react';
 import { collection, getDocs, query, orderBy, getDoc, setDoc, doc } from 'firebase/firestore';
-import type { User as AppUser } from '@/lib/types';
+import type { User as AppUser, Post } from '@/lib/types';
 import { ResponsiveContainer, BarChart as RechartsBarChart, XAxis, YAxis, Tooltip, Bar, CartesianGrid } from 'recharts';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { UserAvatar } from '@/components/user-avatar';
@@ -26,6 +26,7 @@ import { MoreHorizontal } from 'lucide-react';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { Switch } from '@/components/ui/switch';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 
 export default function AdminPage() {
@@ -35,11 +36,13 @@ export default function AdminPage() {
   const { toast } = useToast();
 
   const [allUsers, setAllUsers] = useState<AppUser[]>([]);
-  const [loadingUsers, setLoadingUsers] = useState(true);
+  const [allPosts, setAllPosts] = useState<Post[]>([]);
+  const [loadingData, setLoadingData] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   
   const [goLiveMin, setGoLiveMin] = useState(10);
-  const [loadingSettings, setLoadingSettings] = useState(true);
+  const [aiContentScanning, setAiContentScanning] = useState(false);
+  const [aiSensitivity, setAiSensitivity] = useState('medium');
   const [isSavingSettings, setIsSavingSettings] = useState(false);
 
   // Route protection
@@ -59,38 +62,45 @@ export default function AdminPage() {
     if (!firestore || appUser?.role !== 'admin') return;
 
     const fetchData = async () => {
-        setLoadingUsers(true);
-        setLoadingSettings(true);
+        setLoadingData(true);
         try {
             // Fetch users
             const usersQuery = query(collection(firestore, 'users'), orderBy('createdAt', 'desc'));
-            const querySnapshot = await getDocs(usersQuery);
-            const usersData = querySnapshot.docs.map(doc => ({id: doc.id, ...doc.data()} as AppUser));
+            const usersSnapshot = await getDocs(usersQuery);
+            const usersData = usersSnapshot.docs.map(doc => ({id: doc.id, ...doc.data()} as AppUser));
             setAllUsers(usersData);
+            
+            // Fetch posts
+            const postsQuery = query(collection(firestore, 'posts'));
+            const postsSnapshot = await getDocs(postsQuery);
+            const postsData = postsSnapshot.docs.map(doc => ({id: doc.id, ...doc.data()} as Post));
+            setAllPosts(postsData);
 
             // Fetch settings
             const settingsRef = doc(firestore, 'config', 'appSettings');
             const settingsSnap = await getDoc(settingsRef);
             if (settingsSnap.exists()) {
-                setGoLiveMin(settingsSnap.data().goLiveFollowerMinimum || 10);
+                const settingsData = settingsSnap.data();
+                setGoLiveMin(settingsData.goLiveFollowerMinimum || 10);
+                setAiContentScanning(settingsData.aiContentScanningEnabled || false);
+                setAiSensitivity(settingsData.aiViolationSensitivity || 'medium');
             }
 
         } catch (error) {
             console.error("Error fetching admin data:", error);
             toast({ title: 'Error', description: 'Could not fetch admin data.', variant: 'destructive'});
         } finally {
-            setLoadingUsers(false);
-            setLoadingSettings(false);
+            setLoadingData(false);
         }
     };
     fetchData();
   }, [firestore, toast, appUser]);
   
   const newUsersLast30Days = useMemo(() => {
-    if (loadingUsers) return 0;
+    if (loadingData) return 0;
     const thirtyDaysAgo = subDays(new Date(), 30);
     return allUsers.filter(user => user.createdAt?.toDate() > thirtyDaysAgo).length;
-  }, [allUsers, loadingUsers]);
+  }, [allUsers, loadingData]);
 
   const monthlyGrowthData = useMemo(() => {
     const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -109,6 +119,15 @@ export default function AdminPage() {
     const currentMonth = new Date().getMonth();
     return growthData.slice(0, currentMonth + 1);
   }, [allUsers]);
+
+  const totalPosts = useMemo(() => allPosts.length, [allPosts]);
+  
+  const totalEngagements = useMemo(() => {
+    if (loadingData) return 0;
+    const totalLikes = allPosts.reduce((sum, post) => sum + (post.likesCount || 0), 0);
+    const totalComments = allPosts.reduce((sum, post) => sum + (post.commentsCount || 0), 0);
+    return totalLikes + totalComments;
+  }, [allPosts, loadingData]);
   
   const filteredUsers = useMemo(() => {
     if (!searchTerm) {
@@ -126,7 +145,11 @@ export default function AdminPage() {
     setIsSavingSettings(true);
     try {
         const settingsRef = doc(firestore, 'config', 'appSettings');
-        await setDoc(settingsRef, { goLiveFollowerMinimum: Number(goLiveMin) }, { merge: true });
+        await setDoc(settingsRef, { 
+            goLiveFollowerMinimum: Number(goLiveMin),
+            aiContentScanningEnabled: aiContentScanning,
+            aiViolationSensitivity: aiSensitivity
+        }, { merge: true });
         toast({ title: 'Settings Saved', description: 'Your changes have been applied.' });
     } catch (error) {
         toast({ title: 'Error', description: 'Could not save settings.', variant: 'destructive'});
@@ -171,8 +194,8 @@ export default function AdminPage() {
                         <Users className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold">{loadingUsers ? '...' : allUsers.length}</div>
-                        <p className="text-xs text-muted-foreground">+20.1% from last month (mock)</p>
+                        <div className="text-2xl font-bold">{loadingData ? '...' : allUsers.length}</div>
+                        <p className="text-xs text-muted-foreground">Total registered users.</p>
                     </CardContent>
                 </Card>
                  <Card>
@@ -181,28 +204,28 @@ export default function AdminPage() {
                         <UserPlus className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold">{loadingUsers ? '...' : `+${newUsersLast30Days}`}</div>
+                        <div className="text-2xl font-bold">{loadingData ? '...' : `+${newUsersLast30Days}`}</div>
                         <p className="text-xs text-muted-foreground">in the last 30 days</p>
                     </CardContent>
                 </Card>
                  <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Reported Issues</CardTitle>
-                        <ShieldAlert className="h-4 w-4 text-muted-foreground" />
+                        <CardTitle className="text-sm font-medium">Total Posts</CardTitle>
+                        <MessageSquare className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold">+12</div>
-                        <p className="text-xs text-muted-foreground">+5 since last week (mock)</p>
+                        <div className="text-2xl font-bold">{loadingData ? '...' : totalPosts.toLocaleString()}</div>
+                        <p className="text-xs text-muted-foreground">Total posts created on the platform.</p>
                     </CardContent>
                 </Card>
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Engagement Rate</CardTitle>
-                        <ArrowUpRight className="h-4 w-4 text-muted-foreground" />
+                        <CardTitle className="text-sm font-medium">Total Engagements</CardTitle>
+                        <Heart className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold">57.8%</div>
-                        <p className="text-xs text-muted-foreground">+2.1% from last month (mock)</p>
+                        <div className="text-2xl font-bold">{loadingData ? '...' : totalEngagements.toLocaleString()}</div>
+                        <p className="text-xs text-muted-foreground">Total likes and comments.</p>
                     </CardContent>
                 </Card>
             </div>
@@ -213,7 +236,7 @@ export default function AdminPage() {
                         <CardDescription>Monthly new user sign-ups.</CardDescription>
                     </CardHeader>
                     <CardContent className="h-80">
-                        {loadingUsers ? <Skeleton className="h-full w-full"/> : (
+                        {loadingData ? <Skeleton className="h-full w-full"/> : (
                             <ResponsiveContainer width="100%" height="100%">
                                 <RechartsBarChart data={monthlyGrowthData}>
                                     <CartesianGrid strokeDasharray="3 3" vertical={false}/>
@@ -248,7 +271,7 @@ export default function AdminPage() {
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {loadingUsers ? [...Array(5)].map((_, i) => (
+                            {loadingData ? [...Array(5)].map((_, i) => (
                                 <TableRow key={i}>
                                     <TableCell><Skeleton className="h-10 w-full"/></TableCell>
                                     <TableCell className="hidden sm:table-cell"><Skeleton className="h-10 w-full"/></TableCell>
@@ -296,7 +319,7 @@ export default function AdminPage() {
                     <CardDescription>Configure features across the application.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                    {loadingSettings ? <Skeleton className="h-10 w-64"/> : (
+                    {loadingData ? <Skeleton className="h-10 w-64"/> : (
                         <div className="space-y-2">
                             <Label htmlFor="go-live-min">Go Live Follower Minimum</Label>
                             <Input id="go-live-min" type="number" value={goLiveMin} onChange={(e) => setGoLiveMin(Number(e.target.value))} className="max-w-xs"/>
@@ -304,54 +327,48 @@ export default function AdminPage() {
                         </div>
                     )}
                 </CardContent>
-                <CardContent>
-                     <Button onClick={handleSettingsSave} loading={isSavingSettings}>Save Feature Settings</Button>
-                </CardContent>
              </Card>
              
              <Card>
                 <CardHeader>
                     <CardTitle>AI & Moderation</CardTitle>
-                    <CardDescription>Manage AI-powered content moderation. (Placeholder)</CardDescription>
+                    <CardDescription>Manage AI-powered content moderation.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                    <div className="flex items-center justify-between p-4 border rounded-lg">
-                        <div className="space-y-0.5">
-                            <Label htmlFor="ai-violation" className="text-base">Enable AI Content Scanning</Label>
-                            <p className="text-sm text-muted-foreground">Automatically scan uploaded content for violations.</p>
-                        </div>
-                        <Switch id="ai-violation" disabled/>
-                    </div>
-                     <div className="space-y-2">
-                        <Label>Violation Sensitivity</Label>
-                        <p className="text-sm text-muted-foreground">This feature is not yet implemented.</p>
-                    </div>
+                    {loadingData ? <Skeleton className="h-24 w-full" /> : (
+                        <>
+                            <div className="flex items-center justify-between p-4 border rounded-lg">
+                                <div className="space-y-0.5">
+                                    <Label htmlFor="ai-violation" className="text-base">Enable AI Content Scanning</Label>
+                                    <p className="text-sm text-muted-foreground">Automatically scan uploaded content for violations.</p>
+                                </div>
+                                <Switch id="ai-violation" checked={aiContentScanning} onCheckedChange={setAiContentScanning} />
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="ai-sensitivity">Violation Sensitivity</Label>
+                                <Select value={aiSensitivity} onValueChange={(value: 'low' | 'medium' | 'high') => setAiSensitivity(value)} disabled={!aiContentScanning}>
+                                    <SelectTrigger id="ai-sensitivity" className="max-w-xs">
+                                        <SelectValue placeholder="Select sensitivity" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="low">Low</SelectItem>
+                                        <SelectItem value="medium">Medium</SelectItem>
+                                        <SelectItem value="high">High</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                                <p className="text-sm text-muted-foreground">Set the sensitivity for detecting potential violations.</p>
+                            </div>
+                        </>
+                    )}
                 </CardContent>
              </Card>
 
              <Card>
                 <CardHeader>
-                    <CardTitle>SMTP Email Settings</CardTitle>
-                    <CardDescription>Configure the server for outgoing emails. This is a placeholder.</CardDescription>
+                    <CardTitle>Application Wide Settings</CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-4">
-                    <div className="space-y-2">
-                        <Label htmlFor="smtp-server">SMTP Server</Label>
-                        <Input id="smtp-server" placeholder="smtp.example.com" />
-                    </div>
-                     <div className="space-y-2">
-                        <Label htmlFor="smtp-port">Port</Label>
-                        <Input id="smtp-port" placeholder="587" />
-                    </div>
-                    <div className="space-y-2">
-                        <Label htmlFor="smtp-user">Username</Label>
-                        <Input id="smtp-user" placeholder="user@example.com" />
-                    </div>
-                     <div className="space-y-2">
-                        <Label htmlFor="smtp-pass">Password</Label>
-                        <Input id="smtp-pass" type="password" />
-                    </div>
-                    <Button onClick={() => toast({ title: 'Settings Saved', description: 'This is a placeholder.'})}>Save SMTP Settings</Button>
+                <CardContent>
+                     <Button onClick={handleSettingsSave} loading={isSavingSettings}>Save Settings</Button>
                 </CardContent>
              </Card>
         </TabsContent>
