@@ -153,7 +153,13 @@ export default function CreatePage() {
 
     } catch (error: any) {
       console.error('Error creating post:', error);
-      toast({ title: 'Upload Failed', description: error.message || 'Could not create your post.', variant: 'destructive' });
+      let description = 'Could not create your post. Please try again.';
+      if (error?.code === 'storage/unauthorized') {
+          description = 'You do not have permission to upload this file. Please check the Storage security rules in your Firebase project.';
+      } else if (error.message) {
+          description = error.message;
+      }
+      toast({ title: 'Upload Failed', description: description, variant: 'destructive' });
     } finally {
       setIsUploading(false);
     }

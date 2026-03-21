@@ -71,7 +71,13 @@ export default function CreateStatusPage() {
 
     } catch (error: any) {
       console.error('Error creating status:', error);
-      toast({ title: 'Upload Failed', description: error.message || 'Could not post your status.', variant: 'destructive' });
+      let description = 'Could not post your status. Please try again.';
+      if (error?.code === 'storage/unauthorized') {
+          description = 'You do not have permission to upload this file. Please check the Storage security rules in your Firebase project.';
+      } else if (error.message) {
+          description = error.message;
+      }
+      toast({ title: 'Upload Failed', description, variant: 'destructive' });
     } finally {
       setIsUploading(false);
     }
