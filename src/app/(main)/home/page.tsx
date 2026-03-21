@@ -20,7 +20,7 @@ export default function HomePage() {
       if (!firestore) return;
       setLoading(true);
       try {
-        const postsQuery = query(collection(firestore, 'posts'), orderBy('createdAt', 'desc'), limit(10));
+        const postsQuery = query(collection(firestore, 'posts'), orderBy('likesCount', 'desc'), orderBy('createdAt', 'desc'), limit(20));
         const querySnapshot = await getDocs(postsQuery);
         
         const postsData = await Promise.all(querySnapshot.docs.map(async (postDoc) => {
@@ -39,7 +39,7 @@ export default function HomePage() {
         setPosts(postsData.filter(p => p.author)); // Filter out posts where author couldn't be fetched
       } catch (error) {
         console.error("Error fetching posts: ", error);
-        toast({ title: 'Error', description: 'Could not fetch posts.', variant: 'destructive' });
+        toast({ title: 'Error', description: 'Could not fetch posts. This might be due to a missing database index.', variant: 'destructive' });
       }
       setLoading(false);
     };
@@ -118,7 +118,7 @@ export default function HomePage() {
         <div className="h-full w-full snap-start flex items-center justify-center relative text-white">
           <div className="text-center">
             <h2 className="text-2xl font-bold">Welcome to Phriendzy!</h2>
-            <p className="text-muted-foreground mt-2">Follow some accounts to see their posts here.</p>
+            <p className="text-muted-foreground mt-2">Engaging posts from the community will appear here.</p>
           </div>
         </div>
       )}
