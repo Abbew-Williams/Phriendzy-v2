@@ -128,6 +128,17 @@
         "createdAt": { "type": "string", "format": "date-time" }
       },
       "required": ["authorId", "authorUsername", "text", "createdAt"]
+    },
+    "AppSettings": {
+      "title": "Application Settings",
+      "description": "Stores global application settings configurable by an admin.",
+      "type": "object",
+      "properties": {
+        "goLiveFollowerMinimum": {
+          "type": "number",
+          "description": "The minimum number of followers a user needs to go live."
+        }
+      }
     }
   },
   "auth": {
@@ -189,6 +200,10 @@
     "/liveStreams/{liveId}/comments/{commentId}": {
       "schema": { "$ref": "#/entities/LiveStreamComment" },
       "description": "Subcollection for comments on a live stream."
+    },
+    "/config/{settingId}": {
+      "schema": { "$ref": "#/entities/AppSettings" },
+      "description": "Stores global application settings. Use a consistent document ID like 'appSettings'."
     }
   }
 }

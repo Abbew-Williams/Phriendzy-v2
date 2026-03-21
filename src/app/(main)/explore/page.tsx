@@ -38,6 +38,9 @@ export default function ExplorePage() {
   const [loading, setLoading] = useState(true);
   const [followingStatus, setFollowingStatus] = useState<Record<string, boolean>>({});
   const [followLoading, setFollowLoading] = useState<Record<string, boolean>>({});
+  
+  const [goLiveMinFollowers, setGoLiveMinFollowers] = useState(1000); // High default
+  const [loadingSettings, setLoadingSettings] = useState(true);
 
   useEffect(() => {
     const fetchUsers = async () => {
@@ -75,6 +78,26 @@ export default function ExplorePage() {
     }
     fetchUsers();
   }, [firestore, appUser, toast]);
+
+  useEffect(() => {
+    const fetchSettings = async () => {
+        if (!firestore) return;
+        setLoadingSettings(true);
+        try {
+            const settingsRef = doc(firestore, 'config', 'appSettings');
+            const settingsSnap = await getDoc(settingsRef);
+            if (settingsSnap.exists()) {
+                setGoLiveMinFollowers(settingsSnap.data().goLiveFollowerMinimum || 1000);
+            }
+        } catch (error) {
+            console.error("Error fetching settings:", error);
+            // Use default value if settings can't be fetched
+        } finally {
+            setLoadingSettings(false);
+        }
+    };
+    fetchSettings();
+  }, [firestore]);
   
   const handleFollowToggle = async (targetUserId: string) => {
     if (!appUser) {
@@ -122,8 +145,12 @@ export default function ExplorePage() {
       toast({ title: 'Please log in to go live.', variant: 'destructive' });
       return;
     }
-    if ((appUser.followersCount || 0) < 10) {
-      toast({ title: 'Not eligible for Live', description: 'You need at least 10 followers to go live.', variant: 'destructive'});
+    if (loadingSettings) {
+      toast({ title: 'Checking eligibility...', description: 'Please wait a moment.' });
+      return;
+    }
+    if ((appUser.followersCount || 0) < goLiveMinFollowers) {
+      toast({ title: 'Not eligible for Live', description: `You need at least ${goLiveMinFollowers} followers to go live.`, variant: 'destructive'});
     } else {
       router.push('/go-live');
     }
