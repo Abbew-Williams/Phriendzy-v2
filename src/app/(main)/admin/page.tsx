@@ -45,6 +45,8 @@ export default function AdminPage() {
   const [aiSensitivity, setAiSensitivity] = useState('medium');
   const [isSavingSettings, setIsSavingSettings] = useState(false);
 
+  const [growthPeriod, setGrowthPeriod] = useState('yearly');
+
   // Route protection
   useEffect(() => {
     if (!userLoading && (!appUser || appUser.role !== 'admin')) {
@@ -102,23 +104,71 @@ export default function AdminPage() {
     return allUsers.filter(user => user.createdAt?.toDate() > thirtyDaysAgo).length;
   }, [allUsers, loadingData]);
 
-  const monthlyGrowthData = useMemo(() => {
-    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-    const currentYear = new Date().getFullYear();
-    const growthData = months.map(m => ({ month: m, users: 0 }));
+  const growthData = useMemo(() => {
+    if (loadingData) return [];
+    const now = new Date();
 
-    allUsers.forEach(user => {
-        if (user.createdAt?.toDate) {
-            const joinDate = user.createdAt.toDate();
-            if (joinDate.getFullYear() === currentYear) {
-                const monthIndex = joinDate.getMonth();
-                growthData[monthIndex].users += 1;
+    if (growthPeriod === 'yearly') {
+        const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        const currentYear = now.getFullYear();
+        const data = months.map(m => ({ name: m, users: 0 }));
+
+        allUsers.forEach(user => {
+            if (user.createdAt?.toDate) {
+                const joinDate = user.createdAt.toDate();
+                if (joinDate.getFullYear() === currentYear) {
+                    const monthIndex = joinDate.getMonth();
+                    data[monthIndex].users += 1;
+                }
             }
-        }
-    });
-    const currentMonth = new Date().getMonth();
-    return growthData.slice(0, currentMonth + 1);
-  }, [allUsers]);
+        });
+        const currentMonth = now.getMonth();
+        return data.slice(0, currentMonth + 1);
+    }
+
+    if (growthPeriod === 'monthly') {
+        const currentMonth = now.getMonth();
+        const currentYear = now.getFullYear();
+        const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+        const data = Array.from({ length: daysInMonth }, (_, i) => ({ name: `${i + 1}`, users: 0 }));
+
+        allUsers.forEach(user => {
+            if (user.createdAt?.toDate) {
+                const joinDate = user.createdAt.toDate();
+                if (joinDate.getFullYear() === currentYear && joinDate.getMonth() === currentMonth) {
+                     const dayOfMonth = joinDate.getDate();
+                     if(data[dayOfMonth - 1]) {
+                        data[dayOfMonth - 1].users += 1;
+                     }
+                }
+            }
+        });
+        return data.slice(0, now.getDate());
+    }
+
+    if (growthPeriod === 'weekly') {
+        const sevenDaysAgo = subDays(now, 6); // includes today
+        const data = Array.from({ length: 7 }, (_, i) => {
+            const date = subDays(now, 6 - i);
+            return { name: format(date, 'EEE'), users: 0, date: date };
+        });
+
+        allUsers.forEach(user => {
+            if (user.createdAt?.toDate) {
+                const joinDate = user.createdAt.toDate();
+                if (joinDate >= sevenDaysAgo && joinDate <= now) {
+                    const dayIndex = data.findIndex(d => format(d.date, 'yyyy-MM-dd') === format(joinDate, 'yyyy-MM-dd'));
+                    if (dayIndex !== -1) {
+                        data[dayIndex].users += 1;
+                    }
+                }
+            }
+        });
+        return data.map(({name, users}) => ({name, users}));
+    }
+
+    return [];
+}, [allUsers, growthPeriod, loadingData]);
 
   const totalPosts = useMemo(() => allPosts.length, [allPosts]);
   
@@ -232,15 +282,30 @@ export default function AdminPage() {
             <div className="mt-6">
                 <Card>
                     <CardHeader>
-                        <CardTitle>User Growth ({new Date().getFullYear()})</CardTitle>
-                        <CardDescription>Monthly new user sign-ups.</CardDescription>
+                        <div className="flex justify-between items-start">
+                            <div>
+                                <CardTitle>User Growth</CardTitle>
+                                <CardDescription>
+                                    {growthPeriod === 'yearly' && `Monthly new user sign-ups for ${new Date().getFullYear()}.`}
+                                    {growthPeriod === 'monthly' && `Daily new user sign-ups for ${format(new Date(), 'MMMM')}.`}
+                                    {growthPeriod === 'weekly' && `Daily new user sign-ups for the last 7 days.`}
+                                </CardDescription>
+                            </div>
+                            <Tabs value={growthPeriod} onValueChange={(value) => setGrowthPeriod(value as any)} className="w-auto">
+                                <TabsList>
+                                    <TabsTrigger value="yearly">Year</TabsTrigger>
+                                    <TabsTrigger value="monthly">Month</TabsTrigger>
+                                    <TabsTrigger value="weekly">Week</TabsTrigger>
+                                </TabsList>
+                            </Tabs>
+                        </div>
                     </CardHeader>
                     <CardContent className="h-80">
                         {loadingData ? <Skeleton className="h-full w-full"/> : (
                             <ResponsiveContainer width="100%" height="100%">
-                                <RechartsBarChart data={monthlyGrowthData}>
+                                <RechartsBarChart data={growthData}>
                                     <CartesianGrid strokeDasharray="3 3" vertical={false}/>
-                                    <XAxis dataKey="month" stroke="#888888" fontSize={12} tickLine={false} axisLine={false} />
+                                    <XAxis dataKey="name" stroke="#888888" fontSize={12} tickLine={false} axisLine={false} />
                                     <YAxis stroke="#888888" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(value) => `${value}`} allowDecimals={false} />
                                     <Tooltip cursor={{fill: 'hsla(var(--muted))'}} contentStyle={{backgroundColor: 'hsl(var(--background))', border: '1px solid hsl(var(--border))'}} />
                                     <Bar dataKey="users" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
