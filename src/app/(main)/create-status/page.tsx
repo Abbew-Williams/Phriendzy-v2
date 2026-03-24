@@ -8,7 +8,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useUser } from '@/firebase';
-import { uploadFile } from '@/firebase/storage';
+import { uploadFile } from '@/lib/uploader';
 import { createStatus } from '@/firebase/firestore/statuses';
 import { Progress } from '@/components/ui/progress';
 

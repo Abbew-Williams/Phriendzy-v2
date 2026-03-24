@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useUser } from '@/firebase';
-import { uploadFile } from '@/firebase/storage';
+import { uploadFile } from '@/lib/uploader';
 import { createPost } from '@/firebase/firestore/posts';
 import { users } from '@/lib/data';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
