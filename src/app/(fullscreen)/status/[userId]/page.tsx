@@ -189,6 +189,7 @@ export default function StatusPage() {
     const [loading, setLoading] = useState(true);
     const [currentIndex, setCurrentIndex] = useState(0);
     const [progress, setProgress] = useState(0);
+    const [isPaused, setIsPaused] = useState(false);
 
     const [showComments, setShowComments] = useState(false);
     const [showViewers, setShowViewers] = useState(false);
@@ -202,6 +203,14 @@ export default function StatusPage() {
     const currentStatus = statuses[currentIndex];
     const isOwner = appUser?.uid === currentStatus?.authorId;
 
+    const pauseHandlers = {
+        onMouseDown: () => setIsPaused(true),
+        onMouseUp: () => setIsPaused(false),
+        onMouseLeave: () => setIsPaused(false),
+        onTouchStart: () => setIsPaused(true),
+        onTouchEnd: () => setIsPaused(false),
+    };
+
     const nextStatus = useCallback(() => {
         setCurrentIndex(i => {
             if (i < statuses.length - 1) return i + 1;
@@ -209,6 +218,10 @@ export default function StatusPage() {
             return i;
         });
     }, [statuses.length, router]);
+    
+    const prevStatus = useCallback(() => {
+        setCurrentIndex(i => Math.max(0, i - 1));
+    }, []);
 
     useEffect(() => {
         const fetchStatuses = async () => {
@@ -249,24 +262,40 @@ export default function StatusPage() {
         }
         checkLikeStatus();
     }, [currentStatus, appUser, firestore]);
+    
+    // Effect to reset progress when the status item changes
+    useEffect(() => {
+        setProgress(0);
+    }, [currentIndex]);
+
 
     // Effect for progress bar and auto-advance
     useEffect(() => {
         if (!currentStatus) return;
 
-        // Mark as viewed
-        if (appUser && firestore) addStatusView(firestore, currentStatus.authorId, currentStatus.id, appUser.uid);
+        // If paused, clear timer and pause video
+        if (isPaused) {
+            clearInterval(progressTimerRef.current);
+            videoRef.current?.pause();
+            return;
+        }
+
+        // --- If playing/resuming ---
+        if (appUser && firestore) {
+            addStatusView(firestore, currentStatus.authorId, currentStatus.id, appUser.uid);
+        }
         
-        setProgress(0);
+        videoRef.current?.play().catch(() => {});
+
         clearInterval(progressTimerRef.current);
-        const duration = currentStatus.mediaType === 'image' ? 5000 : (videoRef.current?.duration || 0) * 1000;
         
         const startProgress = (durationMs: number) => {
-            if(durationMs <= 0) {
-                nextStatus();
+            if (durationMs <= 0) {
+                if (currentStatus.mediaType === 'image') nextStatus();
                 return;
-            };
-            const startTime = Date.now();
+            }
+            const startTime = Date.now() - (progress / 100 * durationMs);
+            
             progressTimerRef.current = setInterval(() => {
                 const elapsed = Date.now() - startTime;
                 const newProgress = Math.min(100, (elapsed / durationMs) * 100);
@@ -291,9 +320,9 @@ export default function StatusPage() {
             }
         }
 
-
         return () => clearInterval(progressTimerRef.current);
-    }, [currentIndex, currentStatus, appUser, firestore, nextStatus]);
+    }, [isPaused, currentStatus, nextStatus, appUser, firestore, progress]);
+    
     
     const handleLike = async () => {
         if (!appUser || !currentStatus || isLiking) return;
@@ -352,14 +381,14 @@ export default function StatusPage() {
         <>
             <StatusCommentsSheet open={showComments} onOpenChange={setShowComments} authorId={currentStatus.authorId} statusId={currentStatus.id} onCommentAdded={onCommentAdded} />
             {isOwner && <StatusViewersSheet open={showViewers} onOpenChange={setShowViewers} authorId={currentStatus.authorId} statusId={currentStatus.id} />}
-            <div className="h-screen w-screen bg-black flex items-center justify-center">
+            <div className="h-screen w-screen bg-black flex items-center justify-center" {...pauseHandlers}>
                  {/* Click handlers for next/prev */}
-                <div className="absolute inset-0 z-0 flex">
-                    <div className="flex-1" onClick={() => setCurrentIndex(i => Math.max(0, i - 1))} />
-                    <div className="flex-1" onClick={() => nextStatus()} />
+                <div className="absolute inset-0 z-10 flex">
+                    <div className="flex-1" onClick={prevStatus} />
+                    <div className="flex-1" onClick={nextStatus} />
                 </div>
                 
-                <div className="absolute top-0 left-0 right-0 p-2 z-10">
+                <div className="absolute top-0 left-0 right-0 p-2 z-20">
                     <div className="flex items-center gap-1">
                         {statuses.map((s, i) => (
                             <Progress key={s.id} value={i < currentIndex ? 100 : (i === currentIndex ? progress : 0)} className="h-1 flex-1 bg-white/30" />
@@ -383,7 +412,7 @@ export default function StatusPage() {
                     )}
                 </div>
 
-                <div className="absolute bottom-0 left-0 right-0 p-4 z-10">
+                <div className="absolute bottom-0 left-0 right-0 p-4 z-20">
                     {isOwner ? (
                          <div className="flex items-center gap-4">
                             <Button variant="ghost" className="text-white flex items-center gap-2" onClick={() => setShowViewers(true)}>
