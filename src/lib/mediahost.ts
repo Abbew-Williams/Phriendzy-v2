@@ -1,4 +1,28 @@
 'use client';
+/**
+ * mediahost.ts
+ * ─────────────────────────────────────────────────────────────────────────────
+ * Drop-in upload client for the MediaHost API.
+ *
+ * Features:
+ *  • Compresses video in the browser before uploading (using MediaRecorder)
+ *  • Splits large files into chunks and uploads them in parallel
+ *  • Real-time progress callback (0–100)
+ *  • Works with images too (no compression needed)
+ *
+ * Usage:
+ *   import { uploadFile } from './mediahost.js';
+ *
+ *   const result = await uploadFile(file, {
+ *     apiUrl:   'https://app.phriendzy.com/upload/api_upload.php',
+ *     apiKey:   '',           // leave empty if auth is disabled
+ *     onProgress: (pct, label) => console.log(`${pct}%: ${label}`),
+ *   });
+ *
+ *   console.log(result.direct_url);  // use in <img> or <video>
+ *   console.log(result.url);         // shareable viewer page
+ * ─────────────────────────────────────────────────────────────────────────────
+ */
 
 // ── Config defaults ───────────────────────────────────────────────────────────
 const CHUNK_SIZE = 2 * 1024 * 1024;   // 2 MB per chunk
@@ -20,95 +44,96 @@ type ProgressCallback = (percent: number, status: string) => void;
 //  VIDEO COMPRESSION
 // ─────────────────────────────────────────────────────────────────────────────
 async function compressVideo(file: File, onProgress?: ProgressCallback): Promise<Blob> {
-  if (file.size <= VIDEO_MAX_BYTES) return file;
-
-  const mimeType = MediaRecorder.isTypeSupported('video/webm;codecs=vp9,opus')
-    ? 'video/webm;codecs=vp9,opus'
-    : MediaRecorder.isTypeSupported('video/webm;codecs=vp8,opus')
-      ? 'video/webm;codecs=vp8,opus'
-      : null;
-
-  if (!mimeType || !window.MediaRecorder) {
-    console.warn('[MediaHost] Browser does not support MediaRecorder — skipping compression.');
-    return file;
-  }
-
-  onProgress?.(0, 'Compressing video…');
-
-  return new Promise((resolve) => {
-    const videoEl = document.createElement('video');
-    videoEl.muted = true;
-    videoEl.src = URL.createObjectURL(file);
-
-    videoEl.onloadedmetadata = () => {
-      const canvas = document.createElement('canvas');
-      canvas.width = videoEl.videoWidth;
-      canvas.height = videoEl.videoHeight;
-      const ctx = canvas.getContext('2d');
-
-      if (!ctx) {
-        URL.revokeObjectURL(videoEl.src);
-        console.warn('[MediaHost] Could not get 2D context — using original.');
-        resolve(file);
-        return;
-      }
-
-      const stream = canvas.captureStream(30);
-      const recorder = new MediaRecorder(stream, {
-        mimeType,
-        videoBitsPerSecond: VIDEO_MAX_BITRATE,
-      });
-
-      const chunks: BlobPart[] = [];
-      recorder.ondataavailable = e => { if (e.data.size > 0) chunks.push(e.data); };
-      recorder.onstop = () => {
-        URL.revokeObjectURL(videoEl.src);
-        const compressed = new Blob(chunks, { type: mimeType });
-        console.log(
-          `[MediaHost] Compressed ${(file.size / 1e6).toFixed(1)} MB → ${(compressed.size / 1e6).toFixed(1)} MB`
-        );
-        resolve(compressed);
-      };
-      recorder.onerror = () => {
-        URL.revokeObjectURL(videoEl.src);
-        console.warn('[MediaHost] Compression failed — using original.');
-        resolve(file);
-      };
-
-      recorder.start(200);
-
-      function drawFrame() {
-        if (videoEl.ended || videoEl.paused) {
-            if (recorder.state === 'recording') {
-                recorder.stop();
-            }
-            return;
+    if (file.size <= VIDEO_MAX_BYTES) return file;
+  
+    const mimeType = MediaRecorder.isTypeSupported('video/webm;codecs=vp9,opus')
+      ? 'video/webm;codecs=vp9,opus'
+      : MediaRecorder.isTypeSupported('video/webm;codecs=vp8,opus')
+        ? 'video/webm;codecs=vp8,opus'
+        : null;
+  
+    if (!mimeType || !window.MediaRecorder) {
+      console.warn('[MediaHost] Browser does not support MediaRecorder — skipping compression.');
+      return file;
+    }
+  
+    onProgress?.(0, 'Compressing video…');
+  
+    return new Promise((resolve) => {
+      const videoEl = document.createElement('video');
+      videoEl.muted = true;
+      videoEl.src = URL.createObjectURL(file);
+  
+      videoEl.onloadedmetadata = () => {
+        const canvas = document.createElement('canvas');
+        canvas.width = videoEl.videoWidth;
+        canvas.height = videoEl.videoHeight;
+        const ctx = canvas.getContext('2d');
+  
+        if (!ctx) {
+          URL.revokeObjectURL(videoEl.src);
+          console.warn('[MediaHost] Could not get 2D context — using original.');
+          resolve(file);
+          return;
         }
-        ctx!.drawImage(videoEl, 0, 0);
-        const pct = Math.min(90, Math.round((videoEl.currentTime / videoEl.duration) * 90));
-        onProgress?.(pct, 'Compressing video…');
-        requestAnimationFrame(drawFrame);
-      }
-
-      videoEl.onended = () => {
-          if (recorder.state === 'recording') {
-            recorder.stop();
+  
+        const stream = canvas.captureStream(30);
+        const recorder = new MediaRecorder(stream, {
+          mimeType,
+          videoBitsPerSecond: VIDEO_MAX_BITRATE,
+        });
+  
+        const chunks: BlobPart[] = [];
+        recorder.ondataavailable = e => { if (e.data.size > 0) chunks.push(e.data); };
+        recorder.onstop = () => {
+          URL.revokeObjectURL(videoEl.src);
+          const compressed = new Blob(chunks, { type: mimeType });
+          console.log(
+            `[MediaHost] Compressed ${(file.size / 1e6).toFixed(1)} MB → ${(compressed.size / 1e6).toFixed(1)} MB`
+          );
+          resolve(compressed);
+        };
+        recorder.onerror = () => {
+          URL.revokeObjectURL(videoEl.src);
+          console.warn('[MediaHost] Compression failed — using original.');
+          resolve(file);
+        };
+  
+        recorder.start(200);
+  
+        function drawFrame() {
+          if (videoEl.ended || videoEl.paused) {
+              if (recorder.state === 'recording') {
+                  recorder.stop();
+              }
+              return;
           }
-      };
-      videoEl.play().then(drawFrame).catch(() => {
-        if (recorder.state === 'recording') {
-            recorder.stop();
+          ctx!.drawImage(videoEl, 0, 0);
+          const pct = Math.min(90, Math.round((videoEl.currentTime / videoEl.duration) * 90));
+          onProgress?.(pct, 'Compressing video…');
+          requestAnimationFrame(drawFrame);
         }
-        resolve(file);
-      });
-    };
-
-    videoEl.onerror = () => {
-      URL.revokeObjectURL(videoEl.src);
-      resolve(file); // fallback
-    };
-  });
+  
+        videoEl.onended = () => {
+            if (recorder.state === 'recording') {
+              recorder.stop();
+            }
+        };
+        videoEl.play().then(drawFrame).catch(() => {
+          if (recorder.state === 'recording') {
+              recorder.stop();
+          }
+          resolve(file);
+        });
+      };
+  
+      videoEl.onerror = () => {
+        URL.revokeObjectURL(videoEl.src);
+        resolve(file); // fallback
+      };
+    });
 }
+  
 
 // ─────────────────────────────────────────────────────────────────────────────
 //  CHUNKED UPLOAD
@@ -137,12 +162,29 @@ async function uploadChunked(
       'X-Chunk-Index': String(index),
       'X-Total-Chunks': String(totalChunks),
       'X-File-Id': fileId,
-      'X-File-Name': originalName,
+      'X-File-Name': encodeURIComponent(originalName),
       'X-File-Type': mimeType,
     };
     if (apiKey) headers['X-API-Key'] = apiKey;
 
     const res = await fetch(apiUrl, { method: 'POST', headers, body: form });
+
+    if (!res.ok) {
+        let errorMsg = `Upload failed with status: ${res.status}`;
+        try {
+            // Try to parse the error response as JSON, as defined by the API docs
+            const errorBody = await res.text();
+            const errorJson = JSON.parse(errorBody);
+            if (errorJson.error) {
+                errorMsg = errorJson.error;
+            }
+        } catch {
+            // If it's not JSON, it's likely a server error (e.g., PHP fatal error)
+            errorMsg = `Server returned a non-JSON error (status ${res.status}). Check server logs for details.`;
+        }
+        throw new Error(errorMsg);
+    }
+    
     const data = await res.json();
 
     if (!data.success && data.done !== false) {
@@ -224,6 +266,21 @@ export async function uploadFile(file: File, options: UploadOptions): Promise<Up
 
   onProgress?.(50, 'Uploading…');
   const res = await fetch(apiUrl, { method: 'POST', headers, body: form });
+
+  if (!res.ok) {
+      let errorMsg = `Upload failed with status: ${res.status}`;
+      try {
+          const errorBody = await res.text();
+          const errorJson = JSON.parse(errorBody);
+          if (errorJson.error) {
+              errorMsg = errorJson.error;
+          }
+      } catch {
+          errorMsg = `Server returned a non-JSON error (status ${res.status}). Check server logs for details.`;
+      }
+      throw new Error(errorMsg);
+  }
+
   const data = await res.json();
 
   if (!data.success) throw new Error(data.error || 'Upload failed');
