@@ -24,8 +24,8 @@ export default function GoLivePage() {
     const [isStarting, setIsStarting] = useState(false);
     
     const videoRef = useRef<HTMLVideoElement>(null);
+    const [mediaStream, setMediaStream] = useState<MediaStream | null>(null);
     const [hasCameraPermission, setHasCameraPermission] = useState<boolean | null>(null);
-    const streamRef = useRef<MediaStream | null>(null);
 
     useEffect(() => {
         if (!userLoading && !user) {
@@ -33,29 +33,45 @@ export default function GoLivePage() {
         }
     }, [user, userLoading, router]);
 
+    // Effect to get permissions and stream
     useEffect(() => {
+        let isMounted = true;
         const getPermissions = async () => {
             try {
                 const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-                streamRef.current = stream;
-                setHasCameraPermission(true);
-                if (videoRef.current) {
-                    videoRef.current.srcObject = stream;
+                if (isMounted) {
+                    setMediaStream(stream);
+                    setHasCameraPermission(true);
                 }
             } catch (error) {
                 console.error('Error accessing media devices:', error);
-                setHasCameraPermission(false);
+                if (isMounted) {
+                    setHasCameraPermission(false);
+                }
             }
         };
         getPermissions();
 
         return () => {
-            streamRef.current?.getTracks().forEach(track => track.stop());
-        }
+            isMounted = false;
+        };
     }, []);
 
+    // Effect to attach stream to video element and handle cleanup
+    useEffect(() => {
+        if (videoRef.current && mediaStream) {
+            videoRef.current.srcObject = mediaStream;
+        }
+        
+        return () => {
+            // Stop all tracks when the component unmounts or the stream is replaced
+            mediaStream?.getTracks().forEach(track => track.stop());
+        }
+    }, [mediaStream]);
+
+
     const toggleCamera = () => {
-        const videoTrack = streamRef.current?.getVideoTracks()[0];
+        const videoTrack = mediaStream?.getVideoTracks()[0];
         if (videoTrack) {
             videoTrack.enabled = !isCameraOn;
             setIsCameraOn(!isCameraOn);
@@ -63,7 +79,7 @@ export default function GoLivePage() {
     };
 
     const toggleMic = () => {
-        const audioTrack = streamRef.current?.getAudioTracks()[0];
+        const audioTrack = mediaStream?.getAudioTracks()[0];
         if (audioTrack) {
             audioTrack.enabled = !isMicOn;
             setIsMicOn(!isMicOn);
@@ -108,9 +124,9 @@ export default function GoLivePage() {
                         {hasCameraPermission === false && (
                              <div className="absolute inset-0 bg-black/50 flex items-center justify-center p-4">
                                 <Alert variant="destructive">
-                                    <AlertTitle>Camera Access Denied</AlertTitle>
+                                    <AlertTitle>Camera or Mic Unavailable</AlertTitle>
                                     <AlertDescription>
-                                        Please enable camera and microphone permissions in your browser settings to go live.
+                                        Could not access your camera and microphone. Please ensure they are connected and not in use by another application.
                                     </AlertDescription>
                                 </Alert>
                             </div>
