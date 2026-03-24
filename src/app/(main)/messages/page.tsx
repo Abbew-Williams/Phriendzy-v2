@@ -37,16 +37,18 @@ function MyStatus({ hasStatus }: { hasStatus: boolean }) {
   return (
     <div className="flex flex-col items-center gap-2 flex-shrink-0 w-20">
       <div className="relative">
-        <Link href={`/status/${appUser.uid}`}>
+        <Link href={hasStatus ? `/status/${appUser.uid}` : `/create-status`}>
           <div className={`w-16 h-16 rounded-full ${hasStatus ? 'bg-gradient-to-tr from-yellow-400 via-red-500 to-purple-500 p-0.5' : ''}`}>
              <div className={`w-full h-full bg-background rounded-full ${hasStatus ? 'p-0.5' : ''}`}>
                <UserAvatar user={appUser} className="w-full h-full" />
              </div>
           </div>
         </Link>
-        <Button asChild size="icon" className="absolute -right-1 -bottom-1 h-6 w-6 rounded-full border-2 border-background">
-          <Link href="/create-status"><Plus className="w-4 h-4"/></Link>
-        </Button>
+        {!hasStatus && (
+            <Button asChild size="icon" className="absolute -right-1 -bottom-1 h-6 w-6 rounded-full border-2 border-background">
+              <Link href="/create-status"><Plus className="w-4 h-4"/></Link>
+            </Button>
+        )}
       </div>
       <p className="text-xs truncate w-full text-center font-semibold">Your Story</p>
     </div>
@@ -156,7 +158,8 @@ export default function MessagesPage() {
     useEffect(() => {
         if (!firestore || !appUser) return;
         setLoading(true);
-        const q = query(collection(firestore, 'chats'), where('participants', 'array-contains', appUser.uid), orderBy('updatedAt', 'desc'));
+        // Removed orderBy to avoid index error. Sorting is now done on the client.
+        const q = query(collection(firestore, 'chats'), where('participants', 'array-contains', appUser.uid));
 
         const unsubscribe = onSnapshot(q, async (snapshot) => {
             const chatsData = await Promise.all(snapshot.docs.map(async chatDoc => {
@@ -182,9 +185,22 @@ export default function MessagesPage() {
                     unreadCount: 0, // Placeholder
                 } as Chat;
             }));
-            setChats(chatsData.filter(c => c.participants.length > 1));
+            
+            // Sort chats by the last message timestamp, newest first.
+            const sortedChats = chatsData
+                .filter(c => c.participants.length > 1 && c.lastMessageTimestamp)
+                .sort((a, b) => {
+                    const timeA = a.lastMessageTimestamp.toDate().getTime();
+                    const timeB = b.lastMessageTimestamp.toDate().getTime();
+                    return timeB - timeA;
+                });
+
+            setChats(sortedChats);
             setLoading(false);
-        }));
+        }, (error) => {
+            console.error("Error fetching chats snapshot:", error);
+            setLoading(false);
+        });
 
         return () => unsubscribe();
     }, [firestore, appUser]);
