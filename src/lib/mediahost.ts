@@ -179,6 +179,9 @@ async function uploadChunked(
 
 
     if (!res.ok) {
+        if (res.status === 404) {
+            throw new Error(`Upload failed with 404 Not Found. The API endpoint "${apiUrl}" could not be found. Please check your Media Upload API URL in the admin settings.`);
+        }
         let errorMsg = `Upload failed with status: ${res.status}`;
         try {
             const errorBody = await res.text();
@@ -281,6 +284,9 @@ export async function uploadFile(file: File, options: UploadOptions): Promise<Up
   }
 
   if (!res.ok) {
+      if (res.status === 404) {
+        throw new Error(`Upload failed with 404 Not Found. The API endpoint "${apiUrl}" could not be found. Please check your Media Upload API URL in the admin settings.`);
+      }
       let errorMsg = `Upload failed with status: ${res.status}`;
       try {
           const errorBody = await res.text();
