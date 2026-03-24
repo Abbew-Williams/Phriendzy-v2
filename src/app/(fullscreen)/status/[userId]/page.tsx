@@ -201,6 +201,7 @@ export default function StatusPage() {
     const videoRef = useRef<HTMLVideoElement>(null);
     const progressTimerRef = useRef<NodeJS.Timeout>();
     const elapsedTimeRef = useRef(0);
+    const timerStartTimeRef = useRef(0);
     
     const currentStatus = statuses[currentIndex];
     const isOwner = appUser?.uid === currentStatus?.authorId;
@@ -269,20 +270,25 @@ export default function StatusPage() {
     useEffect(() => {
         setProgress(0);
         elapsedTimeRef.current = 0;
+        timerStartTimeRef.current = 0;
     }, [currentIndex]);
 
 
     // Effect for progress bar and auto-advance
     useEffect(() => {
+        clearInterval(progressTimerRef.current);
         if (!currentStatus) return;
 
-        // If paused by user or a sheet is open, clear timer and pause video
-        if (isPaused || showComments || showViewers) {
-            clearInterval(progressTimerRef.current);
-            videoRef.current?.pause();
-            // Record how much time has elapsed when we pause
-            const duration = currentStatus.mediaType === 'image' ? 5000 : (videoRef.current?.duration || 0) * 1000;
-            elapsedTimeRef.current = (progress / 100) * duration;
+        const isPausedByUser = isPaused || showComments || showViewers;
+        const videoElement = videoRef.current;
+
+        if (isPausedByUser) {
+            videoElement?.pause();
+            if (timerStartTimeRef.current > 0) {
+                const timePassedInInterval = Date.now() - timerStartTimeRef.current;
+                elapsedTimeRef.current += timePassedInInterval;
+                timerStartTimeRef.current = 0;
+            }
             return;
         }
 
@@ -291,43 +297,45 @@ export default function StatusPage() {
             addStatusView(firestore, currentStatus.authorId, currentStatus.id, appUser.uid);
         }
         
-        videoRef.current?.play().catch(() => {});
+        videoElement?.play().catch(() => {});
 
-        clearInterval(progressTimerRef.current);
-        
-        const startProgress = (durationMs: number) => {
-            if (durationMs <= 0) {
+        const startTimer = (durationMs: number) => {
+            if (durationMs <= 0 || durationMs === Infinity) {
                 if (currentStatus.mediaType === 'image') nextStatus();
                 return;
             }
-            // On resume, subtract the already elapsed time.
-            const startTime = Date.now() - elapsedTimeRef.current;
-            
+            timerStartTimeRef.current = Date.now();
             progressTimerRef.current = setInterval(() => {
-                const newProgress = Math.min(100, ((Date.now() - startTime) / durationMs) * 100);
+                const timePassedInInterval = Date.now() - timerStartTimeRef.current;
+                const totalElapsedTime = elapsedTimeRef.current + timePassedInInterval;
+                const newProgress = Math.min(100, (totalElapsedTime / durationMs) * 100);
                 setProgress(newProgress);
                 if (newProgress >= 100) {
                     nextStatus();
                 }
             }, 100);
-        }
+        };
+
+        const initializePlayback = () => {
+            const videoDurationMs = (videoElement?.duration || 0) * 1000;
+            const durationMs = currentStatus.mediaType === 'image' ? 5000 : videoDurationMs;
+            startTimer(durationMs);
+        };
 
         if (currentStatus.mediaType === 'image') {
-            startProgress(5000);
-        } else if (currentStatus.mediaType === 'video' && videoRef.current) {
-            const onLoadedMetadata = () => {
-                const videoDuration = (videoRef.current?.duration || 0) * 1000;
-                startProgress(videoDuration);
-            };
-            if (videoRef.current.readyState >= 1) { // METADATA LOADED
-                onLoadedMetadata();
+            initializePlayback();
+        } else if (videoElement) {
+            if (videoElement.readyState >= videoElement.HAVE_METADATA) {
+                initializePlayback();
             } else {
-                videoRef.current.onloadedmetadata = onLoadedMetadata;
+                videoElement.onloadedmetadata = initializePlayback;
             }
         }
 
-        return () => clearInterval(progressTimerRef.current);
-    }, [isPaused, showComments, showViewers, currentStatus, nextStatus, appUser, firestore, progress]);
+        return () => {
+            clearInterval(progressTimerRef.current);
+        };
+    }, [isPaused, showComments, showViewers, currentStatus, nextStatus, appUser, firestore]);
     
     
     const handleLike = async () => {
