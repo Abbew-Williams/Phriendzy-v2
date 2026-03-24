@@ -8,9 +8,10 @@ const VIDEO_MAX_BYTES = 100 * 1024 * 1024; // skip compression if already < 100 
 
 // ── Unique ID generator ───────────────────────────────────────────────────────
 function uuid(): string {
-  return globalThis.crypto?.randomUUID
-    ? globalThis.crypto.randomUUID()
-    : Math.random().toString(36).slice(2) + Date.now().toString(36);
+  if (typeof window !== 'undefined' && window.crypto?.randomUUID) {
+    return window.crypto.randomUUID();
+  }
+  return Math.random().toString(36).slice(2) + Date.now().toString(36);
 }
 
 type ProgressCallback = (percent: number, status: string) => void;
@@ -154,7 +155,7 @@ async function uploadChunked(
     return data;
   }
 
-  let lastResult = null;
+  let lastResult: any = null;
   for (let i = 0; i < totalChunks; i += PARALLEL_CHUNKS) {
     const batch = chunkBlobs.slice(i, i + PARALLEL_CHUNKS).map((_, j) => sendChunk(i + j));
     const results = await Promise.all(batch);

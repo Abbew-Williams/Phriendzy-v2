@@ -202,10 +202,7 @@ export default function EditProfilePage() {
         router.push('/profile');
     } catch (error: any) {
         console.error("Error updating profile:", error);
-        let description = 'Could not save your profile. Please try again.';
-        if (error.message.includes('upload failed')) {
-            description = error.message;
-        }
+        const description = error.message || 'Could not save your profile. Please try again.';
         toast({
             title: 'Update Failed',
             description: description,
