@@ -28,45 +28,19 @@ export const uploadFile = async (file: File, onProgress: (percentage: number) =>
         throw new Error('Media upload API URL is not configured in admin settings.');
     }
 
-    try {
-        const result = await mediaHostUpload(file, {
-            apiUrl: apiUrl,
-            onProgress: (pct, label) => {
-                onProgress(pct);
-                console.log(`Upload status: ${label}`);
-            }
-        });
+    // The try/catch block here was hiding the specific error from mediahost.ts.
+    // By removing it, the original, more detailed error will bubble up to the UI.
+    const result = await mediaHostUpload(file, {
+        apiUrl: apiUrl,
+        onProgress: (pct, label) => {
+            onProgress(pct);
+        }
+    });
 
-        if (result && result.direct_url) {
-            return result.direct_url;
-        } else {
-            throw new Error(result.error || 'Invalid response from upload API.');
-        }
-    } catch (error: any) {
-        console.error('Upload failed:', error);
-        
-        // Check for localhost issue
-        try {
-            const url = new URL(apiUrl);
-            if ((url.hostname === 'localhost' || url.hostname === '127.0.0.1') && 
-                (typeof window !== 'undefined' && window.location.hostname !== 'localhost')) {
-                throw new Error(`Your upload server is set to "${apiUrl}", but you can't connect to a local server from a deployed app. Please use your server's public IP address or domain name.`);
-            }
-        } catch (urlError) {
-            // If the URL is invalid, throw that error. Otherwise, we'll fall through to the more general network error.
-            if (urlError instanceof Error && urlError.message.includes('Invalid URL')) {
-                 throw new Error(`The Media Upload API URL ("${apiUrl}") is not a valid URL. Please correct it in the Admin Panel.`);
-            } else if (urlError instanceof Error) {
-                // re-throw the specific localhost error
-                throw urlError;
-            }
-        }
-
-        // Rethrow the original, more descriptive error from mediahost.ts if it exists
-        if (error.message.includes('Network Error')) {
-             throw error;
-        }
-        
-        throw new Error(error.message || 'Upload failed due to an unknown error.');
+    if (result && result.direct_url) {
+        return result.direct_url;
+    } else {
+        // This case should be covered by errors thrown inside mediaHostUpload, but is here for safety.
+        throw new Error(result.error || 'Invalid response from upload API.');
     }
 };
