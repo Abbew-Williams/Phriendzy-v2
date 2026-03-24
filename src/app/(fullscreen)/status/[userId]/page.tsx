@@ -18,6 +18,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { toggleStatusLike } from '@/firebase/firestore/interactions';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
+import { FollowSheet } from '@/components/follow-sheet';
 
 // Helper function to mark a status as viewed
 const addStatusView = async (firestore: any, authorId: string, statusId: string, viewerId: string) => {
@@ -232,7 +233,7 @@ export default function StatusPage() {
                 const authorRef = doc(firestore, 'users', userId);
                 const authorSnap = await getDoc(authorRef);
                 if (authorSnap.exists()) {
-                    setAuthor(authorSnap.data() as User);
+                    setAuthor({ id: authorSnap.id, ...authorSnap.data() } as User);
                 }
 
                 const q = query(
@@ -241,7 +242,7 @@ export default function StatusPage() {
                     orderBy('expiresAt', 'asc')
                 );
                 const querySnapshot = await getDocs(q);
-                const statusesData = querySnapshot.docs.map(d => ({ ...d.data(), id: d.id, author: authorSnap.exists() ? authorSnap.data() : null } as Status));
+                const statusesData = querySnapshot.docs.map(d => ({ ...d.data(), id: d.id, author: authorSnap.exists() ? ({ id: authorSnap.id, ...authorSnap.data() } as User) : null } as Status));
                 setStatuses(statusesData);
             } catch (e) {
                 console.error(e);
@@ -254,7 +255,7 @@ export default function StatusPage() {
     
     // Check like status when status changes
     useEffect(() => {
-        if (!currentStatus || !appUser) return;
+        if (!currentStatus || !appUser || !firestore) return;
         const checkLikeStatus = async () => {
             const likeRef = doc(firestore, 'users', currentStatus.authorId, 'statuses', currentStatus.id, 'likes', appUser.uid);
             const likeSnap = await getDoc(likeRef);
@@ -297,8 +298,7 @@ export default function StatusPage() {
             const startTime = Date.now() - (progress / 100 * durationMs);
             
             progressTimerRef.current = setInterval(() => {
-                const elapsed = Date.now() - startTime;
-                const newProgress = Math.min(100, (elapsed / durationMs) * 100);
+                const newProgress = Math.min(100, ((Date.now() - startTime) / durationMs) * 100);
                 setProgress(newProgress);
                 if (newProgress >= 100) {
                     nextStatus();
@@ -325,7 +325,7 @@ export default function StatusPage() {
     
     
     const handleLike = async () => {
-        if (!appUser || !currentStatus || isLiking) return;
+        if (!appUser || !currentStatus || isLiking || !firestore) return;
         
         setIsLiking(true);
         const wasLiked = isLiked;
@@ -341,7 +341,7 @@ export default function StatusPage() {
         setStatuses(newStatuses);
         
         try {
-            await toggleStatusLike(currentStatus.authorId, currentStatus.id, appUser.uid);
+            await toggleStatusLike(firestore, currentStatus.authorId, currentStatus.id, appUser.uid);
         } catch (e) {
             console.error(e);
             toast({ title: 'Error', description: 'Could not like status.', variant: 'destructive'});
@@ -385,6 +385,7 @@ export default function StatusPage() {
                  {/* Click handlers for next/prev */}
                 <div className="absolute inset-0 z-10 flex">
                     <div className="flex-1" onClick={prevStatus} />
+                    <div className="flex-1" />
                     <div className="flex-1" onClick={nextStatus} />
                 </div>
                 

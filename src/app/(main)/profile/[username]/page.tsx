@@ -14,6 +14,7 @@ import { collection, query, where, getDocs, doc, getDoc, orderBy, limit } from '
 import type { User as AppUser, Post } from "@/lib/types";
 import { toggleFollow } from "@/firebase/firestore/interactions";
 import { useToast } from "@/hooks/use-toast";
+import { FollowSheet } from "@/components/follow-sheet";
 
 
 export default function UserProfilePage() {
@@ -29,6 +30,8 @@ export default function UserProfilePage() {
   const [loading, setLoading] = useState(true);
   const [isFollowing, setIsFollowing] = useState(false);
   const [isFollowLoading, setIsFollowLoading] = useState(false);
+
+  const [sheetState, setSheetState] = useState<{ open: boolean, type: 'followers' | 'following' }>({ open: false, type: 'followers' });
 
   useEffect(() => {
     const fetchUserProfile = async () => {
@@ -56,7 +59,7 @@ export default function UserProfilePage() {
         setUserPosts(postsSnapshot.docs.map(d => ({ ...d.data(), id: d.id } as Post)));
         
         // Check follow status
-        if (currentUser) {
+        if (currentUser && firestore) {
             const followRef = doc(firestore, 'users', currentUser.uid, 'following', userData.uid);
             const followSnap = await getDoc(followRef);
             setIsFollowing(followSnap.exists());
@@ -75,7 +78,7 @@ export default function UserProfilePage() {
   }, [username, firestore, authLoading, currentUser, router]);
 
   const handleFollowToggle = async () => {
-    if (!currentUser || !profileUser) {
+    if (!currentUser || !profileUser || !firestore) {
         toast({ title: "Please log in to follow users.", variant: "destructive" });
         return;
     }
@@ -86,7 +89,7 @@ export default function UserProfilePage() {
     setProfileUser(p => p ? { ...p, followersCount: p.followersCount + (!wasFollowing ? 1 : -1) } : null);
 
     try {
-        await toggleFollow(currentUser.uid, profileUser.uid);
+        await toggleFollow(firestore, currentUser.uid, profileUser.uid);
     } catch(e) {
         console.error(e);
         // Revert on error
@@ -97,6 +100,10 @@ export default function UserProfilePage() {
         setIsFollowLoading(false);
     }
   }
+
+  const openFollowSheet = (type: 'followers' | 'following') => {
+    setSheetState({ open: true, type });
+  };
 
   if (loading || authLoading) {
     return (
@@ -138,63 +145,73 @@ export default function UserProfilePage() {
   const userName = `${profileUser.firstName || ''} ${profileUser.lastName || ''}`.trim();
 
   return (
-    <div className="w-full p-4 sm:p-6 lg:p-8">
-      <header className="flex flex-col sm:flex-row gap-8 items-center sm:items-start mb-10">
-        <UserAvatar user={profileUser} className="w-24 h-24 sm:w-36 sm:h-36 object-cover" />
-        <div className="flex-1 text-center sm:text-left">
-          <div className="flex items-center justify-center sm:justify-start gap-4 mb-4">
-            <h1 className="font-headline text-2xl font-medium">{profileUser.username}</h1>
-            <Button onClick={handleFollowToggle} loading={isFollowLoading} variant={isFollowing ? 'secondary' : 'default'}>
-              {isFollowing ? <UserCheck className="mr-2 h-4 w-4"/> : <UserPlus className="mr-2 h-4 w-4" />}
-              {isFollowing ? 'Following' : 'Follow'}
-            </Button>
-            <Button variant="secondary">Message</Button>
+    <>
+      <div className="w-full p-4 sm:p-6 lg:p-8">
+        <header className="flex flex-col sm:flex-row gap-8 items-center sm:items-start mb-10">
+          <UserAvatar user={profileUser} className="w-24 h-24 sm:w-36 sm:h-36 object-cover" />
+          <div className="flex-1 text-center sm:text-left">
+            <div className="flex items-center justify-center sm:justify-start gap-4 mb-4">
+              <h1 className="font-headline text-2xl font-medium">{profileUser.username}</h1>
+              <Button onClick={handleFollowToggle} loading={isFollowLoading} variant={isFollowing ? 'secondary' : 'default'}>
+                {isFollowing ? <UserCheck className="mr-2 h-4 w-4"/> : <UserPlus className="mr-2 h-4 w-4" />}
+                {isFollowing ? 'Following' : 'Follow'}
+              </Button>
+              <Button variant="secondary">Message</Button>
+            </div>
+            <div className="flex justify-center sm:justify-start gap-6 mb-4">
+              <button className="focus:outline-none"><span className="font-bold">{userPosts.length}</span> posts</button>
+              <button onClick={() => openFollowSheet('followers')} className="focus:outline-none hover:underline"><span className="font-bold">{profileUser.followersCount}</span> followers</button>
+              <button onClick={() => openFollowSheet('following')} className="focus:outline-none hover:underline"><span className="font-bold">{profileUser.followingCount}</span> following</button>
+            </div>
+            <div>
+              <h2 className="font-bold">{userName}</h2>
+              <p className="text-muted-foreground">{profileUser.bio}</p>
+            </div>
           </div>
-          <div className="flex justify-center sm:justify-start gap-6 mb-4">
-            <div><span className="font-bold">{userPosts.length}</span> posts</div>
-            <div><span className="font-bold">{profileUser.followersCount}</span> followers</div>
-            <div><span className="font-bold">{profileUser.followingCount}</span> following</div>
-          </div>
-          <div>
-            <h2 className="font-bold">{userName}</h2>
-            <p className="text-muted-foreground">{profileUser.bio}</p>
-          </div>
-        </div>
-      </header>
+        </header>
 
-      <Tabs defaultValue="posts" className="w-full">
-        <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="posts">Posts</TabsTrigger>
-          <TabsTrigger value="liked">Liked</TabsTrigger>
-        </TabsList>
-        <TabsContent value="posts">
-          <div className="grid grid-cols-3 gap-1 sm:gap-4 mt-6">
-            {userPosts.map(post => (
-              <Link href={`/post/${post.id}`} key={post.id} className="relative aspect-square">
-                <Image
-                  src={post.mediaUrl}
-                  alt={post.caption || 'User post'}
-                  fill
-                  className="object-cover rounded-md"
-                  sizes="(max-width: 768px) 33vw, 33vw"
-                />
-              </Link>
-            ))}
-          </div>
-           {userPosts.length === 0 && (
-            <div className="flex flex-col items-center justify-center h-64 border-2 border-dashed rounded-lg mt-6">
-              <h3 className="text-xl font-semibold">No posts yet</h3>
-              <p className="text-muted-foreground mt-2">This user hasn't shared any posts.</p>
+        <Tabs defaultValue="posts" className="w-full">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="posts">Posts</TabsTrigger>
+            <TabsTrigger value="liked">Liked</TabsTrigger>
+          </TabsList>
+          <TabsContent value="posts">
+            <div className="grid grid-cols-3 gap-1 sm:gap-4 mt-6">
+              {userPosts.map(post => (
+                <Link href={`/post/${post.id}`} key={post.id} className="relative aspect-square">
+                  <Image
+                    src={post.mediaUrl}
+                    alt={post.caption || 'User post'}
+                    fill
+                    className="object-cover rounded-md"
+                    sizes="(max-width: 768px) 33vw, 33vw"
+                  />
+                </Link>
+              ))}
             </div>
-           )}
-        </TabsContent>
-        <TabsContent value="liked">
-             <div className="flex flex-col items-center justify-center h-64 border-2 border-dashed rounded-lg mt-6">
-              <h3 className="text-xl font-semibold">No liked posts</h3>
-              <p className="text-muted-foreground mt-2">This user's liked posts are private.</p>
-            </div>
-        </TabsContent>
-      </Tabs>
-    </div>
+            {userPosts.length === 0 && (
+              <div className="flex flex-col items-center justify-center h-64 border-2 border-dashed rounded-lg mt-6">
+                <h3 className="text-xl font-semibold">No posts yet</h3>
+                <p className="text-muted-foreground mt-2">This user hasn't shared any posts.</p>
+              </div>
+            )}
+          </TabsContent>
+          <TabsContent value="liked">
+              <div className="flex flex-col items-center justify-center h-64 border-2 border-dashed rounded-lg mt-6">
+                <h3 className="text-xl font-semibold">No liked posts</h3>
+                <p className="text-muted-foreground mt-2">This user's liked posts are private.</p>
+              </div>
+          </TabsContent>
+        </Tabs>
+      </div>
+      {profileUser && (
+          <FollowSheet 
+              open={sheetState.open}
+              onOpenChange={(open) => setSheetState(s => ({ ...s, open }))}
+              userId={profileUser.uid}
+              type={sheetState.type}
+          />
+      )}
+    </>
   );
 }

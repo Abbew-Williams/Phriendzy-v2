@@ -15,30 +15,34 @@ import { useRouter } from 'next/navigation';
 import { getOrCreateChat } from '@/firebase/firestore/chats';
 import { Skeleton } from '@/components/ui/skeleton';
 
-function StatusItem({ status }: { status: Status }) {
+function StatusItem({ user }: { user: User }) {
   return (
-    <Link href={`/status/${status.author.uid}`} className="flex flex-col items-center gap-2 flex-shrink-0 w-20">
+    <Link href={`/status/${user.uid}`} className="flex flex-col items-center gap-2 flex-shrink-0 w-20">
       <div className="relative cursor-pointer">
         <div className="w-16 h-16 rounded-full bg-gradient-to-tr from-yellow-400 via-red-500 to-purple-500 p-0.5">
            <div className="bg-background rounded-full p-0.5">
-             <UserAvatar user={status.author} className="w-full h-full" />
+             <UserAvatar user={user} className="w-full h-full" />
            </div>
         </div>
       </div>
-      <p className="text-xs truncate w-full text-center">{status.author.username}</p>
+      <p className="text-xs truncate w-full text-center">{user.username}</p>
     </Link>
   )
 }
 
-function MyStatus() {
+function MyStatus({ hasStatus }: { hasStatus: boolean }) {
   const { appUser } = useUser();
   if (!appUser) return null;
-  
+
   return (
     <div className="flex flex-col items-center gap-2 flex-shrink-0 w-20">
       <div className="relative">
         <Link href={`/status/${appUser.uid}`}>
-          <UserAvatar user={appUser} className="w-16 h-16" />
+          <div className={`w-16 h-16 rounded-full ${hasStatus ? 'bg-gradient-to-tr from-yellow-400 via-red-500 to-purple-500 p-0.5' : ''}`}>
+             <div className={`w-full h-full bg-background rounded-full ${hasStatus ? 'p-0.5' : ''}`}>
+               <UserAvatar user={appUser} className="w-full h-full" />
+             </div>
+          </div>
         </Link>
         <Button asChild size="icon" className="absolute -right-1 -bottom-1 h-6 w-6 rounded-full border-2 border-background">
           <Link href="/create-status"><Plus className="w-4 h-4"/></Link>
@@ -48,6 +52,7 @@ function MyStatus() {
     </div>
   );
 }
+
 
 function ChatItem({ chat }: { chat: Chat }) {
   const { appUser } = useUser();
@@ -82,36 +87,70 @@ export default function MessagesPage() {
     const router = useRouter();
     
     const [chats, setChats] = useState<Chat[]>([]);
-    const [statuses, setStatuses] = useState<Status[]>([]);
     const [loading, setLoading] = useState(true);
 
     const [searchTerm, setSearchTerm] = useState('');
     const [isSearching, setIsSearching] = useState(false);
     const [searchResults, setSearchResults] = useState<User[]>([]);
 
-    // Fetch user's own active statuses
+    const [followedUsersWithStatus, setFollowedUsersWithStatus] = useState<User[]>([]);
+    const [hasOwnStatus, setHasOwnStatus] = useState(false);
+    const [loadingStatuses, setLoadingStatuses] = useState(true);
+
     useEffect(() => {
         if (!firestore || !appUser) return;
+        setLoadingStatuses(true);
+        const controller = new AbortController();
+        const { signal } = controller;
 
-        const q = query(
-            collection(firestore, 'users', appUser.uid, 'statuses'),
-            where('expiresAt', '>', new Date()),
-            limit(5)
-        );
+        const fetchFollowedStatuses = async () => {
+            const followingRef = collection(firestore, 'users', appUser.uid, 'following');
+            const followingSnapshot = await getDocs(followingRef, { signal });
+            const followingIds = followingSnapshot.docs.map(doc => doc.id);
 
-        const unsubscribe = onSnapshot(q, (snapshot) => {
-            const userStatuses = snapshot.docs.map(doc => ({
-                id: doc.id,
-                author: appUser,
-                ...doc.data()
-            } as Status));
-            // In a real app, you'd fetch statuses from followed users too.
-            setStatuses(userStatuses); 
+            const usersWithStatus: User[] = [];
+            const userPromises = followingIds.map(async (id) => {
+                const statusQuery = query(
+                    collection(firestore, 'users', id, 'statuses'),
+                    where('expiresAt', '>', new Date()),
+                    limit(1)
+                );
+                const statusSnapshot = await getDocs(statusQuery, { signal });
+                if (!statusSnapshot.empty) {
+                    const userRef = doc(firestore, 'users', id);
+                    const userSnap = await getDoc(userRef, { signal });
+                    if (userSnap.exists()) {
+                        usersWithStatus.push({ id: userSnap.id, ...userSnap.data() } as User);
+                    }
+                }
+            });
+            await Promise.all(userPromises);
+            if (!signal.aborted) {
+                setFollowedUsersWithStatus(usersWithStatus);
+            }
+        };
+
+        const checkOwnStatus = async () => {
+            const ownStatusQuery = query(
+                collection(firestore, 'users', appUser.uid, 'statuses'),
+                where('expiresAt', '>', new Date()),
+                limit(1)
+            );
+            const ownStatusSnapshot = await getDocs(ownStatusQuery, { signal });
+            if (!signal.aborted) {
+                setHasOwnStatus(!ownStatusSnapshot.empty);
+            }
+        };
+
+        Promise.all([fetchFollowedStatuses(), checkOwnStatus()]).finally(() => {
+            if (!signal.aborted) {
+                setLoadingStatuses(false);
+            }
         });
 
-        return () => unsubscribe();
+        return () => controller.abort();
+    }, [firestore, appUser]);
 
-    }, [firestore, appUser])
 
     // Fetch user's chats
     useEffect(() => {
@@ -206,10 +245,21 @@ export default function MessagesPage() {
       
       <div className="mb-8">
         <ScrollArea className="w-full whitespace-nowrap">
-          <div className="flex gap-4 pb-4">
-            <MyStatus />
-            {statuses.map(status => <StatusItem key={status.id} status={status} />)}
-          </div>
+          {loadingStatuses ? (
+            <div className="flex gap-4 pb-4">
+                {[...Array(4)].map((_, i) => (
+                    <div key={i} className="flex flex-col items-center gap-2 flex-shrink-0 w-20">
+                        <Skeleton className="w-16 h-16 rounded-full" />
+                        <Skeleton className="h-2 w-12" />
+                    </div>
+                ))}
+            </div>
+          ) : (
+            <div className="flex gap-4 pb-4">
+              <MyStatus hasStatus={hasOwnStatus} />
+              {followedUsersWithStatus.map(user => <StatusItem key={user.id} user={user} />)}
+            </div>
+          )}
           <ScrollBar orientation="horizontal" />
         </ScrollArea>
       </div>

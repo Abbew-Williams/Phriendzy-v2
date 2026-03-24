@@ -10,11 +10,12 @@ import {
   addDoc,
   increment,
   collection,
+  Firestore,
 } from 'firebase/firestore';
-import { firestore } from '@/firebase';
+import { firestore as defaultFirestore } from '@/firebase';
 
 // Helper to create notifications
-const createNotification = async (data: {
+const createNotification = async (firestore: Firestore, data: {
   type: 'like' | 'comment' | 'follow';
   fromUserId: string;
   toUserId: string;
@@ -45,7 +46,7 @@ const createNotification = async (data: {
 
 
 // --- Like ---
-export const toggleLike = async (postId: string, userId: string): Promise<boolean> => {
+export const toggleLike = async (firestore: Firestore, postId: string, userId: string): Promise<boolean> => {
   const postRef = doc(firestore, 'posts', postId);
   const likeRef = doc(firestore, 'posts', postId, 'likes', userId);
   const userLikeRef = doc(firestore, 'users', userId, 'likes', postId);
@@ -72,7 +73,7 @@ export const toggleLike = async (postId: string, userId: string): Promise<boolea
       const postSnap = await getDoc(postRef);
       if (postSnap.exists()) {
           const postData = postSnap.data();
-          createNotification({
+          createNotification(firestore, {
               type: 'like',
               fromUserId: userId,
               toUserId: postData.authorId,
@@ -90,7 +91,7 @@ export const toggleLike = async (postId: string, userId: string): Promise<boolea
 
 
 // --- Save ---
-export const toggleSave = async (postId: string, userId: string): Promise<boolean> => {
+export const toggleSave = async (firestore: Firestore, postId: string, userId: string): Promise<boolean> => {
   const saveRef = doc(firestore, 'users', userId, 'saved', postId);
   try {
     const saveSnap = await getDoc(saveRef);
@@ -109,7 +110,7 @@ export const toggleSave = async (postId: string, userId: string): Promise<boolea
 
 
 // --- Comment ---
-export const addComment = async (postId: string, authorId: string, text: string) => {
+export const addComment = async (firestore: Firestore, postId: string, authorId: string, text: string) => {
     if (!text.trim()) throw new Error("Comment cannot be empty");
 
     const postRef = doc(firestore, 'posts', postId);
@@ -135,7 +136,7 @@ export const addComment = async (postId: string, authorId: string, text: string)
         const postSnap = await getDoc(postRef);
         if (postSnap.exists()) {
           const postData = postSnap.data();
-          createNotification({
+          createNotification(firestore, {
               type: 'comment',
               fromUserId: authorId,
               toUserId: postData.authorId,
@@ -153,7 +154,7 @@ export const addComment = async (postId: string, authorId: string, text: string)
 };
 
 // --- Follow ---
-export const toggleFollow = async (currentUserId: string, targetUserId: string): Promise<boolean> => {
+export const toggleFollow = async (firestore: Firestore, currentUserId: string, targetUserId: string): Promise<boolean> => {
     if (currentUserId === targetUserId) {
         console.error("Users cannot follow themselves.");
         throw new Error("Users cannot follow themselves.");
@@ -185,7 +186,7 @@ export const toggleFollow = async (currentUserId: string, targetUserId: string):
             await batch.commit();
             
             // Create notification
-            createNotification({
+            createNotification(firestore, {
                 type: 'follow',
                 fromUserId: currentUserId,
                 toUserId: targetUserId,
@@ -200,7 +201,7 @@ export const toggleFollow = async (currentUserId: string, targetUserId: string):
 }
 
 // --- Status Like ---
-export const toggleStatusLike = async (authorId: string, statusId: string, userId: string): Promise<boolean> => {
+export const toggleStatusLike = async (firestore: Firestore, authorId: string, statusId: string, userId: string): Promise<boolean> => {
     const statusRef = doc(firestore, 'users', authorId, 'statuses', statusId);
     const likeRef = doc(firestore, 'users', authorId, 'statuses', statusId, 'likes', userId);
 
