@@ -10,11 +10,13 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useUser } from '@/firebase';
 import { uploadFile } from '@/firebase/storage';
 import { createStatus } from '@/firebase/firestore/statuses';
+import { Progress } from '@/components/ui/progress';
 
 export default function CreateStatusPage() {
   const [file, setFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
 
   const router = useRouter();
   const { toast } = useToast();
@@ -54,10 +56,10 @@ export default function CreateStatusPage() {
     }
 
     setIsUploading(true);
+    setUploadProgress(0);
 
     try {
-      const filePath = `statuses/${user.uid}/${Date.now()}_${file.name}`;
-      const mediaUrl = await uploadFile(file, filePath);
+      const mediaUrl = await uploadFile(file, setUploadProgress);
       const mediaType = file.type.startsWith('image/') ? 'image' : 'video';
 
       await createStatus({
@@ -117,12 +119,12 @@ export default function CreateStatusPage() {
                 <CardHeader>
                     <div className="flex items-center justify-between">
                          <div className="flex items-center gap-4">
-                            <Button variant="ghost" size="icon" onClick={discardStatus}>
+                            <Button variant="ghost" size="icon" onClick={discardStatus} disabled={isUploading}>
                                 <ArrowLeft />
                             </Button>
                             <CardTitle>Preview</CardTitle>
                         </div>
-                        <Button type="submit" loading={isUploading}>Post Status</Button>
+                        <Button type="submit" loading={isUploading} disabled={isUploading}>Post Status</Button>
                     </div>
                 </CardHeader>
                 <CardContent>
@@ -131,6 +133,12 @@ export default function CreateStatusPage() {
                             <Image src={previewUrl} alt="Preview" fill objectFit="contain" />
                         ) : (
                             <video src={previewUrl!} controls autoPlay loop muted className="max-h-[80vh] w-auto" />
+                        )}
+                        {isUploading && (
+                            <div className="absolute inset-0 bg-black/70 flex flex-col items-center justify-center gap-4 p-4">
+                                <Progress value={uploadProgress} className="w-full max-w-sm" />
+                                <p className="text-white font-semibold">Uploading... {uploadProgress}%</p>
+                            </div>
                         )}
                     </div>
                 </CardContent>

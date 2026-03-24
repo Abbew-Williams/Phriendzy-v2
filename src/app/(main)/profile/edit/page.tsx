@@ -45,6 +45,9 @@ export default function EditProfilePage() {
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
 
   // Username availability state
   const [usernameStatus, setUsernameStatus] = useState<'idle' | 'checking' | 'available' | 'taken'>('idle');
@@ -175,8 +178,10 @@ export default function EditProfilePage() {
         }
 
         if (hasAvatarChanged && avatarFile) {
-            const filePath = `avatars/${appUser.uid}/${Date.now()}_${avatarFile.name}`;
-            updateData.avatarUrl = await uploadFile(avatarFile, filePath);
+            setIsUploadingAvatar(true);
+            setUploadProgress(0);
+            updateData.avatarUrl = await uploadFile(avatarFile, setUploadProgress);
+            setIsUploadingAvatar(false);
         }
 
         if (Object.keys(updateData).length > 0) {
@@ -198,9 +203,7 @@ export default function EditProfilePage() {
     } catch (error: any) {
         console.error("Error updating profile:", error);
         let description = 'Could not save your profile. Please try again.';
-        if (error?.code === 'storage/unauthorized') {
-            description = 'You do not have permission to upload a profile photo. Please check the Storage security rules in your Firebase project.';
-        } else if (error?.message) {
+        if (error.message.includes('upload failed')) {
             description = error.message;
         }
         toast({
@@ -210,6 +213,7 @@ export default function EditProfilePage() {
         });
     } finally {
         setIsSaving(false);
+        setIsUploadingAvatar(false);
     }
   };
 
@@ -269,10 +273,17 @@ export default function EditProfilePage() {
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
             <div className="flex items-center gap-6">
-              <UserAvatar user={{ ...appUser, avatarUrl: avatarPreview || appUser.avatarUrl }} className="w-20 h-20" />
+              <div className="relative">
+                <UserAvatar user={{ ...appUser, avatarUrl: avatarPreview || appUser.avatarUrl }} className="w-20 h-20" />
+                {isUploadingAvatar && (
+                    <div className="absolute inset-0 rounded-full bg-black/70 flex items-center justify-center">
+                        <p className="text-white text-sm font-bold">{uploadProgress}%</p>
+                    </div>
+                )}
+              </div>
               <div>
                 <h2 className="text-xl font-semibold">{appUser.username}</h2>
-                <Button type="button" variant="link" className="p-0 h-auto text-primary" onClick={() => fileInputRef.current?.click()}>
+                <Button type="button" variant="link" className="p-0 h-auto text-primary" onClick={() => fileInputRef.current?.click()} disabled={isSaving}>
                   Change profile photo
                 </Button>
                 <input type="file" ref={fileInputRef} onChange={handleAvatarChange} className="hidden" accept="image/png, image/jpeg, image/gif" />

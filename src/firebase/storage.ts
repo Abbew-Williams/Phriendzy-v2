@@ -16,40 +16,53 @@ const getMediaApiUrl = async (): Promise<string> => {
 
 
 /**
- * Uploads a file to the custom media hosting service.
+ * Uploads a file to the custom media hosting service with progress tracking.
  * @param file The file to upload.
- * @param path The path is ignored for this custom uploader but kept for compatibility.
+ * @param onProgress A callback function to report upload progress (0-100).
  * @returns A promise that resolves with the direct download URL of the uploaded file.
  */
-export const uploadFile = async (file: File, path?: string): Promise<string> => {
+export const uploadFile = async (file: File, onProgress: (percentage: number) => void): Promise<string> => {
     const apiUrl = await getMediaApiUrl();
     if (!apiUrl) {
         throw new Error('Media upload API URL is not configured in admin settings.');
     }
 
-    const form = new FormData();
-    form.append("file", file);
-
-    try {
-        const res = await fetch(apiUrl, {
-            method: "POST",
-            body: form,
-        });
-
-        if (!res.ok) {
-            const errorText = await res.text();
-            throw new Error(`Upload failed with status ${res.status}: ${errorText}`);
-        }
-
-        const data = await res.json();
+    return new Promise((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
         
-        if (data && data.direct_url) {
-            return data.direct_url;
-        } else {
-            throw new Error('Invalid response from upload API. "direct_url" not found.');
-        }
-    } catch (error) {
-        console.error("Custom media upload failed:", error);
-        throw error; // Re-throw the error to be caught by the calling component
-    }
+        xhr.open("POST", apiUrl, true);
+
+        xhr.upload.onprogress = (event) => {
+            if (event.lengthComputable) {
+                const percentage = Math.round((event.loaded / event.total) * 100);
+                onProgress(percentage);
+            }
+        };
+
+        xhr.onload = () => {
+            if (xhr.status >= 200 && xhr.status < 300) {
+                try {
+                    const data = JSON.parse(xhr.responseText);
+                    if (data && data.direct_url) {
+                        onProgress(100); // Ensure it hits 100% on completion
+                        resolve(data.direct_url);
+                    } else {
+                        reject(new Error('Invalid response from upload API. "direct_url" not found.'));
+                    }
+                } catch (e) {
+                    reject(new Error('Failed to parse response from upload API.'));
+                }
+            } else {
+                 reject(new Error(`Upload failed: ${xhr.statusText || 'Server error'}`));
+            }
+        };
+
+        xhr.onerror = () => {
+            reject(new Error('Upload failed due to a network error.'));
+        };
+
+        const formData = new FormData();
+        formData.append("file", file);
+        xhr.send(formData);
+    });
 };

@@ -18,6 +18,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
+import { Progress } from '@/components/ui/progress';
 
 const MAX_CAPTION_LENGTH = 10000;
 const MAX_HASHTAGS = 20;
@@ -30,6 +31,7 @@ export default function CreatePage() {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [caption, setCaption] = useState('');
   const [isUploading, setIsUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
   
   const [privacy, setPrivacy] = useState<'public' | 'friends' | 'private'>('public');
   const [allowComments, setAllowComments] = useState(true);
@@ -131,10 +133,10 @@ export default function CreatePage() {
     }
 
     setIsUploading(true);
+    setUploadProgress(0);
 
     try {
-      const filePath = `posts/${user.uid}/${Date.now()}_${file.name}`;
-      const mediaUrl = await uploadFile(file, filePath);
+      const mediaUrl = await uploadFile(file, setUploadProgress);
       const mediaType = file.type.startsWith('image/') ? 'image' : 'video';
 
       await createPost({
@@ -319,9 +321,17 @@ export default function CreatePage() {
                   </div>
                 </div>
 
-                <div className="mt-auto pt-6 flex gap-2">
-                  <Button type="button" variant="outline" className="w-full" onClick={discardPost}>Discard</Button>
-                  <Button type="submit" className="w-full" loading={isUploading}>Post</Button>
+                <div className="mt-auto pt-6 flex flex-col gap-4">
+                    {isUploading && (
+                        <div className="w-full space-y-1">
+                            <Progress value={uploadProgress} />
+                            <p className="text-sm text-muted-foreground text-center">Uploading... {uploadProgress}%</p>
+                        </div>
+                    )}
+                    <div className="flex gap-2">
+                        <Button type="button" variant="outline" className="w-full" onClick={discardPost} disabled={isUploading}>Discard</Button>
+                        <Button type="submit" className="w-full" loading={isUploading} disabled={isUploading}>Post</Button>
+                    </div>
                 </div>
               </div>
             </div>
