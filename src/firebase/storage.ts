@@ -44,9 +44,29 @@ export const uploadFile = async (file: File, onProgress: (percentage: number) =>
         }
     } catch (error: any) {
         console.error('Upload failed:', error);
-        if (error.message.includes('Failed to fetch')) {
-            throw new Error('Network Error: Could not connect to the upload server. This is often a CORS issue. Please check your browser\'s developer console (Network tab) for more details.');
+        
+        // Check for localhost issue
+        try {
+            const url = new URL(apiUrl);
+            if ((url.hostname === 'localhost' || url.hostname === '127.0.0.1') && 
+                (typeof window !== 'undefined' && window.location.hostname !== 'localhost')) {
+                throw new Error(`Your upload server is set to "${apiUrl}", but you can't connect to a local server from a deployed app. Please use your server's public IP address or domain name.`);
+            }
+        } catch (urlError) {
+            // If the URL is invalid, throw that error. Otherwise, we'll fall through to the more general network error.
+            if (urlError instanceof Error && urlError.message.includes('Invalid URL')) {
+                 throw new Error(`The Media Upload API URL ("${apiUrl}") is not a valid URL. Please correct it in the Admin Panel.`);
+            } else if (urlError instanceof Error) {
+                // re-throw the specific localhost error
+                throw urlError;
+            }
         }
+
+        // Rethrow the original, more descriptive error from mediahost.ts if it exists
+        if (error.message.includes('Network Error')) {
+             throw error;
+        }
+        
         throw new Error(error.message || 'Upload failed due to an unknown error.');
     }
 };

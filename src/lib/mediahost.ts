@@ -171,7 +171,7 @@ async function uploadChunked(
     try {
         res = await fetch(apiUrl, { method: 'POST', headers, body: form });
     } catch (error: any) {
-         if (error instanceof TypeError && error.message === 'Failed to fetch') {
+         if (error instanceof TypeError && error.message.toLowerCase().includes('failed to fetch')) {
             throw new Error(`Network Error: Communication with the upload server at "${apiUrl}" failed. This is likely a CORS issue or the server is unreachable. Please check the server configuration and the browser's developer console for more details.`);
         }
         throw error;
@@ -182,10 +182,7 @@ async function uploadChunked(
         let errorMsg = `Upload failed with status: ${res.status}`;
         try {
             const errorBody = await res.text();
-            const errorJson = JSON.parse(errorBody);
-            if (errorJson.error) {
-                errorMsg = errorJson.error;
-            }
+            errorMsg = JSON.parse(errorBody)?.error || errorMsg;
         } catch {
             errorMsg = `Server returned a non-JSON error (status ${res.status}). Check server logs for details.`;
         }
@@ -277,7 +274,7 @@ export async function uploadFile(file: File, options: UploadOptions): Promise<Up
   try {
     res = await fetch(apiUrl, { method: 'POST', headers, body: form });
   } catch (error: any) {
-    if (error instanceof TypeError && error.message === 'Failed to fetch') {
+    if (error instanceof TypeError && error.message.toLowerCase().includes('failed to fetch')) {
       throw new Error(`Network Error: Communication with the upload server at "${apiUrl}" failed. This is likely a CORS issue or the server is unreachable. Please check the server configuration and the browser's developer console for more details.`);
     }
     throw error;
@@ -287,10 +284,7 @@ export async function uploadFile(file: File, options: UploadOptions): Promise<Up
       let errorMsg = `Upload failed with status: ${res.status}`;
       try {
           const errorBody = await res.text();
-          const errorJson = JSON.parse(errorBody);
-          if (errorJson.error) {
-              errorMsg = errorJson.error;
-          }
+          errorMsg = JSON.parse(errorBody)?.error || errorMsg;
       } catch {
           errorMsg = `Server returned a non-JSON error (status ${res.status}). Check server logs for details.`;
       }
