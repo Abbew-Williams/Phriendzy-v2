@@ -17,6 +17,9 @@ export const createStatus = async (statusData: {
             ...statusData,
             createdAt: now,
             expiresAt: expiresAt,
+            likesCount: 0,
+            commentsCount: 0,
+            viewsCount: 0,
         });
         return { success: true, error: null };
     } catch (error: any) {

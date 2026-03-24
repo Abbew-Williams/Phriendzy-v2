@@ -17,7 +17,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 
 function StatusItem({ status }: { status: Status }) {
   return (
-    <div className="flex flex-col items-center gap-2 flex-shrink-0 w-20">
+    <Link href={`/status/${status.author.uid}`} className="flex flex-col items-center gap-2 flex-shrink-0 w-20">
       <div className="relative cursor-pointer">
         <div className="w-16 h-16 rounded-full bg-gradient-to-tr from-yellow-400 via-red-500 to-purple-500 p-0.5">
            <div className="bg-background rounded-full p-0.5">
@@ -26,19 +26,21 @@ function StatusItem({ status }: { status: Status }) {
         </div>
       </div>
       <p className="text-xs truncate w-full text-center">{status.author.username}</p>
-    </div>
+    </Link>
   )
 }
 
 function MyStatus() {
   const { appUser } = useUser();
+  if (!appUser) return null;
+  
   return (
     <div className="flex flex-col items-center gap-2 flex-shrink-0 w-20">
-      <Link href="/create-status">
+      <Link href={`/status/${appUser.uid}`}>
         <div className="relative cursor-pointer">
           <UserAvatar user={appUser} className="w-16 h-16" />
-          <Button size="icon" className="absolute -right-1 -bottom-1 h-6 w-6 rounded-full border-2 border-background">
-            <Plus className="w-4 h-4"/>
+          <Button size="icon" className="absolute -right-1 -bottom-1 h-6 w-6 rounded-full border-2 border-background as-child">
+            <Link href="/create-status"><Plus className="w-4 h-4"/></Link>
           </Button>
         </div>
       </Link>

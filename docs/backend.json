@@ -99,9 +99,24 @@
         "mediaUrl": { "type": "string", "format": "uri" },
         "mediaType": { "type": "string", "enum": ["image", "video"] },
         "createdAt": { "type": "string", "format": "date-time" },
-        "expiresAt": { "type": "string", "format": "date-time" }
+        "expiresAt": { "type": "string", "format": "date-time" },
+        "likesCount": { "type": "number", "description": "Number of likes on the status." },
+        "commentsCount": { "type": "number", "description": "Number of comments on the status." },
+        "viewsCount": { "type": "number", "description": "Number of views on the status." }
       },
       "required": ["authorId", "mediaUrl", "mediaType", "createdAt", "expiresAt"]
+    },
+    "StatusComment": {
+      "title": "Status Comment",
+      "description": "A comment on a user's status.",
+      "type": "object",
+      "properties": {
+        "authorId": { "type": "string" },
+        "statusId": { "type": "string" },
+        "text": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["authorId", "statusId", "text", "createdAt"]
     },
      "LiveStream": {
       "title": "Live Stream",
@@ -205,6 +220,18 @@
     "/users/{userId}/statuses/{statusId}": {
       "schema": { "$ref": "#/entities/Status" },
       "description": "Subcollection for a user's statuses (stories)."
+    },
+    "/users/{userId}/statuses/{statusId}/likes/{likerId}": {
+      "schema": { "type": "object", "properties": { "createdAt": { "type": "string", "format": "date-time" } } },
+      "description": "Subcollection of users who liked the status. The document ID is the liker's user ID."
+    },
+    "/users/{userId}/statuses/{statusId}/comments/{commentId}": {
+      "schema": { "$ref": "#/entities/StatusComment" },
+      "description": "Subcollection for comments on a status."
+    },
+    "/users/{userId}/statuses/{statusId}/views/{viewerId}": {
+      "schema": { "type": "object", "properties": { "viewedAt": { "type": "string", "format": "date-time" } } },
+      "description": "Subcollection to track users who have viewed the status. The document ID is the viewer's user ID."
     },
     "/liveStreams/{liveId}": {
       "schema": { "$ref": "#/entities/LiveStream" },

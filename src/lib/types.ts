@@ -54,10 +54,23 @@ export type Notification = {
 
 export type Status = {
     id: string;
+    authorId: string;
     author: User;
     mediaUrl: string;
     mediaType: 'image' | 'video';
     createdAt: any;
+    expiresAt: any;
+    likesCount: number;
+    commentsCount: number;
+    viewsCount: number;
+};
+
+export type StatusComment = {
+  id: string;
+  author: User;
+  authorId: string;
+  text: string;
+  createdAt: any; // Firestore timestamp
 };
 
 export type Chat = {
