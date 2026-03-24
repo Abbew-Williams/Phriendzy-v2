@@ -86,26 +86,81 @@ const StatusViewersSheet = ({ open, onOpenChange, authorId, statusId }: { open: 
     )
 }
 
+const CommentItem = ({ comment, onReply, level = 0 }: { comment: StatusComment; onReply: (comment: StatusComment) => void; level?: number }) => {
+    const [showReplies, setShowReplies] = useState(false);
+    
+    return (
+        <div className={cn("py-2", level > 0 && "ml-6")}>
+            <div className="flex items-start gap-3">
+                <UserAvatar user={comment.author} className="w-8 h-8"/>
+                <div className="flex-1">
+                    <p>
+                        <span className="font-bold text-sm mr-2">{comment.author?.username}</span>
+                        <span className="text-sm">{comment.text}</span>
+                    </p>
+                    <div className="text-xs text-muted-foreground mt-1 flex items-center gap-4">
+                        <span>{comment.createdAt ? formatDistanceToNow(comment.createdAt.toDate(), { addSuffix: true }) : 'just now'}</span>
+                        <button onClick={() => onReply(comment)} className="font-semibold hover:underline">Reply</button>
+                    </div>
+                </div>
+            </div>
+             {(comment.repliesCount || 0) > 0 && (
+                 <div className="ml-11 mt-2">
+                    <button onClick={() => setShowReplies(!showReplies)} className="text-xs text-muted-foreground font-semibold flex items-center gap-2 hover:text-foreground">
+                        <Separator className="w-6"/>
+                        {showReplies ? 'Hide replies' : `View ${comment.repliesCount} ${comment.repliesCount === 1 ? 'reply' : 'replies'}`}
+                    </button>
+                 </div>
+            )}
+            {showReplies && comment.replies && comment.replies.length > 0 && (
+                 <div className="mt-2">
+                    {comment.replies.map(reply => (
+                        <CommentItem key={reply.id} comment={reply} onReply={onReply} level={level + 1} />
+                    ))}
+                 </div>
+            )}
+        </div>
+    );
+};
+
 const StatusCommentsSheet = ({ open, onOpenChange, authorId, statusId, onCommentAdded }: { open: boolean; onOpenChange: (open: boolean) => void; authorId: string, statusId: string, onCommentAdded: () => void }) => {
     const { appUser } = useUser();
     const firestore = useFirestore();
     const [comments, setComments] = useState<StatusComment[]>([]);
     const [loading, setLoading] = useState(true);
     const [newComment, setNewComment] = useState('');
+    const [replyingTo, setReplyingTo] = useState<StatusComment | null>(null);
 
     useEffect(() => {
         if (!firestore || !open) return;
         setLoading(true);
         const commentsColRef = collection(firestore, 'users', authorId, 'statuses', statusId, 'comments');
-        const q = query(commentsColRef, orderBy('createdAt', 'desc'));
+        const q = query(commentsColRef, orderBy('createdAt', 'asc')); // Fetch oldest first to build tree
+        
         const unsubscribe = onSnapshot(q, async (snapshot) => {
-            const commentsData = await Promise.all(snapshot.docs.map(async (docSnap) => {
+            const fetchedComments = await Promise.all(snapshot.docs.map(async (docSnap) => {
                 const data = docSnap.data();
                 const userRef = doc(firestore, 'users', data.authorId);
                 const userSnap = await getDoc(userRef);
                 return userSnap.exists() ? { id: docSnap.id, author: { id: userSnap.id, ...userSnap.data() }, ...data } as StatusComment : null;
             }));
-            setComments(commentsData.filter(Boolean) as StatusComment[]);
+
+            const allComments = fetchedComments.filter(Boolean) as StatusComment[];
+            
+            // Nest replies
+            const commentMap = new Map(allComments.map(c => [c.id, { ...c, replies: [] as StatusComment[] }]));
+            const rootComments: StatusComment[] = [];
+
+            for (const comment of commentMap.values()) {
+                if (comment.parentId && commentMap.has(comment.parentId)) {
+                    commentMap.get(comment.parentId)?.replies.push(comment);
+                } else {
+                    rootComments.push(comment);
+                }
+            }
+            
+            // Sort root comments by newest first for display
+            setComments(rootComments.sort((a,b) => b.createdAt.toMillis() - a.createdAt.toMillis()));
             setLoading(false);
         });
 
@@ -117,18 +172,46 @@ const StatusCommentsSheet = ({ open, onOpenChange, authorId, statusId, onComment
         const tempComment = newComment;
         setNewComment('');
 
+        const commentPayload: {
+            authorId: string;
+            text: string;
+            createdAt: Date;
+            parentId?: string;
+        } = {
+            authorId: appUser.uid,
+            text: tempComment,
+            createdAt: new Date(),
+        };
+
+        if (replyingTo) {
+            commentPayload.parentId = replyingTo.id;
+        }
+
         const commentsColRef = collection(firestore, 'users', authorId, 'statuses', statusId, 'comments');
         const statusRef = doc(firestore, 'users', authorId, 'statuses', statusId);
         
         const batch = writeBatch(firestore);
-        batch.set(doc(commentsColRef), {
-            authorId: appUser.uid,
-            text: tempComment,
-            createdAt: new Date(),
-        });
+        
+        // Add new comment
+        const newCommentRef = doc(commentsColRef);
+        batch.set(newCommentRef, commentPayload);
+        
+        // Increment total comments on status
         batch.update(statusRef, { commentsCount: increment(1) });
+        
+        // If it's a reply, increment repliesCount on parent
+        if (replyingTo) {
+            const parentCommentRef = doc(firestore, 'users', authorId, 'statuses', statusId, 'comments', replyingTo.id);
+            batch.update(parentCommentRef, { repliesCount: increment(1) });
+        }
+        
         await batch.commit();
         onCommentAdded();
+        setReplyingTo(null);
+    }
+    
+    const handleCancelReply = () => {
+        setReplyingTo(null);
     }
 
     return (
@@ -144,25 +227,20 @@ const StatusCommentsSheet = ({ open, onOpenChange, authorId, statusId, onComment
                     </div>}
                     {!loading && comments.length === 0 && <div className="flex items-center justify-center h-full"><p className="text-muted-foreground">No comments yet.</p></div>}
                     {comments.map(comment => (
-                         <div key={comment.id} className="flex items-start gap-3 my-4">
-                            <UserAvatar user={comment.author} className="w-8 h-8"/>
-                            <div className="flex-1">
-                                <p>
-                                    <span className="font-bold text-sm mr-2">{comment.author?.username}</span>
-                                    <span className="text-sm">{comment.text}</span>
-                                </p>
-                                <p className="text-xs text-muted-foreground mt-1">
-                                    {comment.createdAt ? formatDistanceToNow(comment.createdAt.toDate(), { addSuffix: true }) : 'just now'}
-                                </p>
-                            </div>
-                        </div>
+                         <CommentItem key={comment.id} comment={comment} onReply={setReplyingTo}/>
                     ))}
                 </ScrollArea>
-                 <SheetFooter className="p-4 border-t mt-auto bg-background sm:justify-center">
+                 <SheetFooter className="p-4 border-t mt-auto bg-background sm:justify-center flex-col">
+                    {replyingTo && (
+                        <div className="bg-muted text-muted-foreground px-3 py-2 rounded-md text-sm flex justify-between items-center">
+                            <span>Replying to @{replyingTo.author?.username}</span>
+                            <Button variant="ghost" size="icon" className="h-6 w-6" onClick={handleCancelReply}><X className="w-4 h-4" /></Button>
+                        </div>
+                    )}
                     <div className="flex items-center gap-2 w-full">
                         <UserAvatar user={appUser} className="w-8 h-8" />
                         <Input 
-                            placeholder="Add a comment..." 
+                            placeholder={replyingTo ? `Add a reply...` : "Add a comment..."}
                             className="flex-1"
                             value={newComment}
                             onChange={(e) => setNewComment(e.target.value)}
@@ -176,7 +254,7 @@ const StatusCommentsSheet = ({ open, onOpenChange, authorId, statusId, onComment
             </SheetContent>
         </Sheet>
     );
-}
+};
 
 export default function StatusPage() {
     const { userId } = useParams() as { userId: string };

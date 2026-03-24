@@ -71,6 +71,9 @@ export type StatusComment = {
   authorId: string;
   text: string;
   createdAt: any; // Firestore timestamp
+  parentId?: string | null;
+  replies?: StatusComment[];
+  repliesCount?: number;
 };
 
 export type Chat = {

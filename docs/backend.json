@@ -114,7 +114,9 @@
         "authorId": { "type": "string" },
         "statusId": { "type": "string" },
         "text": { "type": "string" },
-        "createdAt": { "type": "string", "format": "date-time" }
+        "createdAt": { "type": "string", "format": "date-time" },
+        "parentId": { "type": "string", "description": "ID of the parent comment if this is a reply." },
+        "repliesCount": { "type": "number", "description": "Number of replies to the comment." }
       },
       "required": ["authorId", "statusId", "text", "createdAt"]
     },
