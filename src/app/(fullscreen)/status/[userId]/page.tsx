@@ -491,7 +491,7 @@ export default function StatusPage() {
                             <span className="font-bold text-sm">{author?.username}</span>
                             <span className="text-xs text-neutral-300">{currentStatus && currentStatus.createdAt && formatDistanceToNow(currentStatus.createdAt.toDate(), { addSuffix: true })}</span>
                         </div>
-                        <Button variant="ghost" size="icon" className="text-white z-20" onClick={() => router.back()}><X /></Button>
+                        <Button variant="ghost" size="icon" className="text-white z-30" onClick={() => router.back()}><X /></Button>
                     </div>
                 </div>
 
