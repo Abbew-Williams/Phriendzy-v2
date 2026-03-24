@@ -198,3 +198,31 @@ export const toggleFollow = async (currentUserId: string, targetUserId: string):
         throw error;
     }
 }
+
+// --- Status Like ---
+export const toggleStatusLike = async (authorId: string, statusId: string, userId: string): Promise<boolean> => {
+    const statusRef = doc(firestore, 'users', authorId, 'statuses', statusId);
+    const likeRef = doc(firestore, 'users', authorId, 'statuses', statusId, 'likes', userId);
+
+    try {
+        const likeSnap = await getDoc(likeRef);
+        const batch = writeBatch(firestore);
+
+        if (likeSnap.exists()) {
+            // Unlike
+            batch.delete(likeRef);
+            batch.update(statusRef, { likesCount: increment(-1) });
+            await batch.commit();
+            return false;
+        } else {
+            // Like
+            batch.set(likeRef, { createdAt: serverTimestamp() });
+            batch.update(statusRef, { likesCount: increment(1) });
+            await batch.commit();
+            return true;
+        }
+    } catch (error) {
+        console.error("Error toggling status like:", error);
+        throw error;
+    }
+}

@@ -15,6 +15,9 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetFooter, SheetClose }
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { Skeleton } from '@/components/ui/skeleton';
+import { toggleStatusLike } from '@/firebase/firestore/interactions';
+import { cn } from '@/lib/utils';
+import { useToast } from '@/hooks/use-toast';
 
 // Helper function to mark a status as viewed
 const addStatusView = async (firestore: any, authorId: string, statusId: string, viewerId: string) => {
@@ -32,13 +35,14 @@ const addStatusView = async (firestore: any, authorId: string, statusId: string,
     }
 };
 
-const StatusViewersSheet = ({ authorId, statusId }: { authorId: string, statusId: string }) => {
+const StatusViewersSheet = ({ open, onOpenChange, authorId, statusId }: { open: boolean; onOpenChange: (open: boolean) => void; authorId: string, statusId: string }) => {
     const firestore = useFirestore();
     const [viewers, setViewers] = useState<User[]>([]);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        if (!firestore) return;
+        if (!firestore || !open) return;
+        setLoading(true);
         const viewersColRef = collection(firestore, 'users', authorId, 'statuses', statusId, 'views');
         const unsubscribe = onSnapshot(viewersColRef, async (snapshot) => {
             const viewersData = await Promise.all(snapshot.docs.map(async (docSnap) => {
@@ -51,35 +55,37 @@ const StatusViewersSheet = ({ authorId, statusId }: { authorId: string, statusId
         });
 
         return () => unsubscribe();
-    }, [firestore, authorId, statusId]);
+    }, [firestore, authorId, statusId, open]);
 
     return (
-        <SheetContent side="bottom" className="h-2/3 flex flex-col">
-            <SheetHeader className="text-center">
-                <SheetTitle>Viewed By</SheetTitle>
-            </SheetHeader>
-            <ScrollArea className="flex-1">
-                {loading && <div className="p-4 space-y-4">
-                    {[...Array(3)].map((_, i) => <div key={i} className="flex items-center gap-3"><Skeleton className="w-10 h-10 rounded-full" /><Skeleton className="h-5 w-32" /></div>)}
-                </div>}
-                {!loading && viewers.length === 0 && <div className="flex items-center justify-center h-full"><p className="text-muted-foreground">No views yet.</p></div>}
-                <div className="p-4 space-y-4">
-                    {viewers.map(viewer => (
-                        <div key={viewer.id} className="flex items-center gap-3">
-                            <UserAvatar user={viewer} />
-                            <div>
-                                <p className="font-semibold">{viewer.username}</p>
-                                <p className="text-sm text-muted-foreground">{viewer.name}</p>
+        <Sheet open={open} onOpenChange={onOpenChange}>
+            <SheetContent side="bottom" className="h-2/3 flex flex-col">
+                <SheetHeader className="text-center">
+                    <SheetTitle>Viewed By</SheetTitle>
+                </SheetHeader>
+                <ScrollArea className="flex-1">
+                    {loading && <div className="p-4 space-y-4">
+                        {[...Array(3)].map((_, i) => <div key={i} className="flex items-center gap-3"><Skeleton className="w-10 h-10 rounded-full" /><Skeleton className="h-5 w-32" /></div>)}
+                    </div>}
+                    {!loading && viewers.length === 0 && <div className="flex items-center justify-center h-full"><p className="text-muted-foreground">No views yet.</p></div>}
+                    <div className="p-4 space-y-4">
+                        {viewers.map(viewer => (
+                            <div key={viewer.id} className="flex items-center gap-3">
+                                <UserAvatar user={viewer} />
+                                <div>
+                                    <p className="font-semibold">{viewer.username}</p>
+                                    <p className="text-sm text-muted-foreground">{viewer.name}</p>
+                                </div>
                             </div>
-                        </div>
-                    ))}
-                </div>
-            </ScrollArea>
-        </SheetContent>
+                        ))}
+                    </div>
+                </ScrollArea>
+            </SheetContent>
+        </Sheet>
     )
 }
 
-const StatusCommentsSheet = ({ authorId, statusId, onCommentAdded }: { authorId: string, statusId: string, onCommentAdded: () => void }) => {
+const StatusCommentsSheet = ({ open, onOpenChange, authorId, statusId, onCommentAdded }: { open: boolean; onOpenChange: (open: boolean) => void; authorId: string, statusId: string, onCommentAdded: () => void }) => {
     const { appUser } = useUser();
     const firestore = useFirestore();
     const [comments, setComments] = useState<StatusComment[]>([]);
@@ -87,7 +93,8 @@ const StatusCommentsSheet = ({ authorId, statusId, onCommentAdded }: { authorId:
     const [newComment, setNewComment] = useState('');
 
     useEffect(() => {
-        if (!firestore) return;
+        if (!firestore || !open) return;
+        setLoading(true);
         const commentsColRef = collection(firestore, 'users', authorId, 'statuses', statusId, 'comments');
         const q = query(commentsColRef, orderBy('createdAt', 'desc'));
         const unsubscribe = onSnapshot(q, async (snapshot) => {
@@ -95,14 +102,14 @@ const StatusCommentsSheet = ({ authorId, statusId, onCommentAdded }: { authorId:
                 const data = docSnap.data();
                 const userRef = doc(firestore, 'users', data.authorId);
                 const userSnap = await getDoc(userRef);
-                return userSnap.exists() ? { id: docSnap.id, author: userSnap.data(), ...data } as StatusComment : null;
+                return userSnap.exists() ? { id: docSnap.id, author: { id: userSnap.id, ...userSnap.data() }, ...data } as StatusComment : null;
             }));
             setComments(commentsData.filter(Boolean) as StatusComment[]);
             setLoading(false);
         });
 
         return () => unsubscribe();
-    }, [firestore, authorId, statusId]);
+    }, [firestore, authorId, statusId, open]);
 
     const handlePostComment = async () => {
         if (!appUser || !newComment.trim()) return;
@@ -124,47 +131,49 @@ const StatusCommentsSheet = ({ authorId, statusId, onCommentAdded }: { authorId:
     }
 
     return (
-        <SheetContent side="bottom" className="h-[90vh] flex flex-col rounded-t-lg">
-            <SheetHeader className="text-center relative">
-                <SheetTitle>Comments</SheetTitle>
-            </SheetHeader>
-            <Separator />
-            <ScrollArea className="flex-1 -mx-6 px-6">
-                {loading && <div className="p-4 space-y-4">
-                    {[...Array(3)].map((_, i) => <div key={i} className="flex items-start gap-3"><Skeleton className="w-8 h-8 rounded-full" /><div className="flex-1 space-y-2"><Skeleton className="h-4 w-24" /><Skeleton className="h-4 w-48" /></div></div>)}
-                </div>}
-                {!loading && comments.length === 0 && <div className="flex items-center justify-center h-full"><p className="text-muted-foreground">No comments yet.</p></div>}
-                {comments.map(comment => (
-                     <div key={comment.id} className="flex items-start gap-3 my-4">
-                        <UserAvatar user={comment.author} className="w-8 h-8"/>
-                        <div className="flex-1">
-                            <p>
-                                <span className="font-bold text-sm mr-2">{comment.author.username}</span>
-                                <span className="text-sm">{comment.text}</span>
-                            </p>
-                            <p className="text-xs text-muted-foreground mt-1">
-                                {comment.createdAt ? formatDistanceToNow(comment.createdAt.toDate(), { addSuffix: true }) : 'just now'}
-                            </p>
+        <Sheet open={open} onOpenChange={onOpenChange}>
+            <SheetContent side="bottom" className="h-[90vh] flex flex-col rounded-t-lg">
+                <SheetHeader className="text-center relative">
+                    <SheetTitle>Comments</SheetTitle>
+                </SheetHeader>
+                <Separator />
+                <ScrollArea className="flex-1 -mx-6 px-6">
+                    {loading && <div className="p-4 space-y-4">
+                        {[...Array(3)].map((_, i) => <div key={i} className="flex items-start gap-3"><Skeleton className="w-8 h-8 rounded-full" /><div className="flex-1 space-y-2"><Skeleton className="h-4 w-24" /><Skeleton className="h-4 w-48" /></div></div>)}
+                    </div>}
+                    {!loading && comments.length === 0 && <div className="flex items-center justify-center h-full"><p className="text-muted-foreground">No comments yet.</p></div>}
+                    {comments.map(comment => (
+                         <div key={comment.id} className="flex items-start gap-3 my-4">
+                            <UserAvatar user={comment.author} className="w-8 h-8"/>
+                            <div className="flex-1">
+                                <p>
+                                    <span className="font-bold text-sm mr-2">{comment.author?.username}</span>
+                                    <span className="text-sm">{comment.text}</span>
+                                </p>
+                                <p className="text-xs text-muted-foreground mt-1">
+                                    {comment.createdAt ? formatDistanceToNow(comment.createdAt.toDate(), { addSuffix: true }) : 'just now'}
+                                </p>
+                            </div>
                         </div>
+                    ))}
+                </ScrollArea>
+                 <SheetFooter className="p-4 border-t mt-auto bg-background sm:justify-center">
+                    <div className="flex items-center gap-2 w-full">
+                        <UserAvatar user={appUser} className="w-8 h-8" />
+                        <Input 
+                            placeholder="Add a comment..." 
+                            className="flex-1"
+                            value={newComment}
+                            onChange={(e) => setNewComment(e.target.value)}
+                            onKeyPress={(e) => e.key === 'Enter' && handlePostComment()}
+                        />
+                        <Button onClick={handlePostComment} disabled={!newComment.trim()} size="icon">
+                            <Send />
+                        </Button>
                     </div>
-                ))}
-            </ScrollArea>
-             <SheetFooter className="p-4 border-t mt-auto bg-background sm:justify-center">
-                <div className="flex items-center gap-2 w-full">
-                    <UserAvatar user={appUser} className="w-8 h-8" />
-                    <Input 
-                        placeholder="Add a comment..." 
-                        className="flex-1"
-                        value={newComment}
-                        onChange={(e) => setNewComment(e.target.value)}
-                        onKeyPress={(e) => e.key === 'Enter' && handlePostComment()}
-                    />
-                    <Button onClick={handlePostComment} disabled={!newComment.trim()} size="icon">
-                        <Send />
-                    </Button>
-                </div>
-            </SheetFooter>
-        </SheetContent>
+                </SheetFooter>
+            </SheetContent>
+        </Sheet>
     );
 }
 
@@ -173,6 +182,7 @@ export default function StatusPage() {
     const { appUser } = useUser();
     const firestore = useFirestore();
     const router = useRouter();
+    const { toast } = useToast();
 
     const [statuses, setStatuses] = useState<Status[]>([]);
     const [author, setAuthor] = useState<User | null>(null);
@@ -183,8 +193,14 @@ export default function StatusPage() {
     const [showComments, setShowComments] = useState(false);
     const [showViewers, setShowViewers] = useState(false);
     
+    const [isLiked, setIsLiked] = useState(false);
+    const [isLiking, setIsLiking] = useState(false);
+    
     const videoRef = useRef<HTMLVideoElement>(null);
     const progressTimerRef = useRef<NodeJS.Timeout>();
+    
+    const currentStatus = statuses[currentIndex];
+    const isOwner = appUser?.uid === currentStatus?.authorId;
 
     const nextStatus = useCallback(() => {
         setCurrentIndex(i => {
@@ -199,130 +215,198 @@ export default function StatusPage() {
             if (!firestore) return;
             setLoading(true);
 
-            const authorRef = doc(firestore, 'users', userId);
-            const authorSnap = await getDoc(authorRef);
-            if (authorSnap.exists()) {
-                setAuthor(authorSnap.data() as User);
-            }
+            try {
+                const authorRef = doc(firestore, 'users', userId);
+                const authorSnap = await getDoc(authorRef);
+                if (authorSnap.exists()) {
+                    setAuthor(authorSnap.data() as User);
+                }
 
-            const q = query(
-                collection(firestore, 'users', userId, 'statuses'),
-                where('expiresAt', '>', new Date()),
-                orderBy('expiresAt', 'asc')
-            );
-            const querySnapshot = await getDocs(q);
-            const statusesData = querySnapshot.docs.map(d => ({ ...d.data(), id: d.id, author: authorSnap.data() } as Status));
-            setStatuses(statusesData);
-            setLoading(false);
+                const q = query(
+                    collection(firestore, 'users', userId, 'statuses'),
+                    where('expiresAt', '>', new Date()),
+                    orderBy('expiresAt', 'asc')
+                );
+                const querySnapshot = await getDocs(q);
+                const statusesData = querySnapshot.docs.map(d => ({ ...d.data(), id: d.id, author: authorSnap.exists() ? authorSnap.data() : null } as Status));
+                setStatuses(statusesData);
+            } catch (e) {
+                console.error(e);
+            } finally {
+                setLoading(false);
+            }
         };
         fetchStatuses();
     }, [firestore, userId]);
     
-    const currentStatus = statuses[currentIndex];
+    // Check like status when status changes
+    useEffect(() => {
+        if (!currentStatus || !appUser) return;
+        const checkLikeStatus = async () => {
+            const likeRef = doc(firestore, 'users', currentStatus.authorId, 'statuses', currentStatus.id, 'likes', appUser.uid);
+            const likeSnap = await getDoc(likeRef);
+            setIsLiked(likeSnap.exists());
+        }
+        checkLikeStatus();
+    }, [currentStatus, appUser, firestore]);
 
     // Effect for progress bar and auto-advance
     useEffect(() => {
         if (!currentStatus) return;
 
         // Mark as viewed
-        if (appUser) addStatusView(firestore, currentStatus.authorId, currentStatus.id, appUser.uid);
+        if (appUser && firestore) addStatusView(firestore, currentStatus.authorId, currentStatus.id, appUser.uid);
         
         setProgress(0);
         clearInterval(progressTimerRef.current);
         const duration = currentStatus.mediaType === 'image' ? 5000 : (videoRef.current?.duration || 0) * 1000;
         
-        if (duration > 0) {
+        const startProgress = (durationMs: number) => {
+            if(durationMs <= 0) {
+                nextStatus();
+                return;
+            };
             const startTime = Date.now();
             progressTimerRef.current = setInterval(() => {
                 const elapsed = Date.now() - startTime;
-                const newProgress = Math.min(100, (elapsed / duration) * 100);
+                const newProgress = Math.min(100, (elapsed / durationMs) * 100);
                 setProgress(newProgress);
                 if (newProgress >= 100) {
                     nextStatus();
                 }
             }, 100);
+        }
+
+        if (currentStatus.mediaType === 'image') {
+            startProgress(5000);
         } else if (currentStatus.mediaType === 'video' && videoRef.current) {
-            videoRef.current.onloadedmetadata = () => {
+            const onLoadedMetadata = () => {
                 const videoDuration = (videoRef.current?.duration || 0) * 1000;
-                if (videoDuration > 0) {
-                    const startTime = Date.now();
-                    progressTimerRef.current = setInterval(() => {
-                        const elapsed = Date.now() - startTime;
-                        const newProgress = Math.min(100, (elapsed / videoDuration) * 100);
-                        setProgress(newProgress);
-                        if (newProgress >= 100) {
-                            nextStatus();
-                        }
-                    }, 100);
-                }
+                startProgress(videoDuration);
             };
+            if (videoRef.current.readyState >= 1) { // METADATA LOADED
+                onLoadedMetadata();
+            } else {
+                videoRef.current.onloadedmetadata = onLoadedMetadata;
+            }
         }
 
 
         return () => clearInterval(progressTimerRef.current);
     }, [currentIndex, currentStatus, appUser, firestore, nextStatus]);
+    
+    const handleLike = async () => {
+        if (!appUser || !currentStatus || isLiking) return;
+        
+        setIsLiking(true);
+        const wasLiked = isLiked;
+        
+        // Optimistic update
+        setIsLiked(!wasLiked);
+        const newStatuses = statuses.map(s => {
+            if (s.id === currentStatus.id) {
+                return { ...s, likesCount: (s.likesCount || 0) + (wasLiked ? -1 : 1) };
+            }
+            return s;
+        });
+        setStatuses(newStatuses);
+        
+        try {
+            await toggleStatusLike(currentStatus.authorId, currentStatus.id, appUser.uid);
+        } catch (e) {
+            console.error(e);
+            toast({ title: 'Error', description: 'Could not like status.', variant: 'destructive'});
+            // Revert optimistic update
+            setIsLiked(wasLiked);
+             setStatuses(statuses);
+        } finally {
+            setIsLiking(false);
+        }
+    }
+    
+    const onCommentAdded = () => {
+        const newStatuses = statuses.map(s => {
+            if (s.id === currentStatus.id) {
+                return { ...s, commentsCount: (s.commentsCount || 0) + 1 };
+            }
+            return s;
+        });
+        setStatuses(newStatuses);
+    };
 
     if (loading) {
         return <div className="h-screen w-screen bg-black flex items-center justify-center"><Skeleton className="w-full h-full" /></div>
     }
     
     if (!loading && statuses.length === 0) {
-        router.back();
-        return null;
+        // This can flash for a moment, so let's redirect gracefully
+        useEffect(() => {
+          router.back();
+        }, [router]);
+        return <div className="h-screen w-screen bg-black" />;
     }
 
-    const isOwner = appUser?.uid === currentStatus?.authorId;
+    if (!currentStatus) return <div className="h-screen w-screen bg-black" />;
 
     return (
-        <Sheet open={true} onOpenChange={(open) => !open && router.back()}>
-            {currentStatus && <StatusCommentsSheet authorId={currentStatus.authorId} statusId={currentStatus.id} onCommentAdded={() => {}} />}
-            {isOwner && currentStatus && <StatusViewersSheet authorId={currentStatus.authorId} statusId={currentStatus.id} />}
-            <div className="h-screen w-screen bg-black flex items-center justify-center" onClick={(e) => {
-                const { clientX, target } = e;
-                const { offsetWidth } = target as HTMLElement;
-                if (clientX < offsetWidth / 3) { // Previous
-                    setCurrentIndex(i => Math.max(0, i - 1));
-                } else { // Next
-                    nextStatus();
-                }
-            }}>
+        <>
+            <StatusCommentsSheet open={showComments} onOpenChange={setShowComments} authorId={currentStatus.authorId} statusId={currentStatus.id} onCommentAdded={onCommentAdded} />
+            {isOwner && <StatusViewersSheet open={showViewers} onOpenChange={setShowViewers} authorId={currentStatus.authorId} statusId={currentStatus.id} />}
+            <div className="h-screen w-screen bg-black flex items-center justify-center">
+                 {/* Click handlers for next/prev */}
+                <div className="absolute inset-0 z-0 flex">
+                    <div className="flex-1" onClick={() => setCurrentIndex(i => Math.max(0, i - 1))} />
+                    <div className="flex-1" onClick={() => nextStatus()} />
+                </div>
+                
                 <div className="absolute top-0 left-0 right-0 p-2 z-10">
                     <div className="flex items-center gap-1">
                         {statuses.map((s, i) => (
-                            <Progress key={s.id} value={i < currentIndex ? 100 : (i === currentIndex ? progress : 0)} className="h-1 flex-1" />
+                            <Progress key={s.id} value={i < currentIndex ? 100 : (i === currentIndex ? progress : 0)} className="h-1 flex-1 bg-white/30" />
                         ))}
                     </div>
                      <div className="flex items-center justify-between mt-2 text-white">
                         <div className="flex items-center gap-2">
                             <UserAvatar user={author} className="w-8 h-8" />
                             <span className="font-bold text-sm">{author?.username}</span>
-                            <span className="text-xs text-neutral-300">{currentStatus && formatDistanceToNow(currentStatus.createdAt.toDate(), { addSuffix: true })}</span>
+                            <span className="text-xs text-neutral-300">{currentStatus && currentStatus.createdAt && formatDistanceToNow(currentStatus.createdAt.toDate(), { addSuffix: true })}</span>
                         </div>
-                        <Button variant="ghost" size="icon" className="text-white" onClick={() => router.back()}><X /></Button>
+                        <Button variant="ghost" size="icon" className="text-white z-20" onClick={() => router.back()}><X /></Button>
                     </div>
                 </div>
 
-                {currentStatus?.mediaType === 'video' ? (
-                    <video ref={videoRef} src={currentStatus.mediaUrl} autoPlay playsInline className="max-h-screen max-w-screen object-contain" onEnded={nextStatus} />
-                ) : (
-                    <Image src={currentStatus.mediaUrl} alt="Status" fill objectFit="contain" />
-                )}
+                <div className="relative w-full h-full flex items-center justify-center">
+                    {currentStatus?.mediaType === 'video' ? (
+                        <video ref={videoRef} key={currentStatus.id} src={currentStatus.mediaUrl} autoPlay playsInline className="max-h-full max-w-full object-contain" onEnded={nextStatus} />
+                    ) : (
+                        <Image src={currentStatus.mediaUrl} alt="Status" fill objectFit="contain" key={currentStatus.id} />
+                    )}
+                </div>
 
                 <div className="absolute bottom-0 left-0 right-0 p-4 z-10">
                     {isOwner ? (
-                         <Button variant="ghost" className="text-white flex items-center gap-2" onClick={() => setShowViewers(true)}>
-                            <Eye className="w-5 h-5"/>
-                            <span>{currentStatus.viewsCount}</span>
-                        </Button>
+                         <div className="flex items-center gap-4">
+                            <Button variant="ghost" className="text-white flex items-center gap-2" onClick={() => setShowViewers(true)}>
+                                <Eye className="w-5 h-5"/>
+                                <span>{currentStatus.viewsCount || 0}</span>
+                            </Button>
+                             <Button variant="ghost" className="text-white flex items-center gap-2" onClick={() => setShowComments(true)}>
+                                <MessageCircle className="w-5 h-5"/>
+                                <span>{currentStatus.commentsCount || 0}</span>
+                            </Button>
+                        </div>
                     ) : (
                         <div className="flex items-center gap-2">
-                            <Input placeholder="Reply..." className="bg-black/50 text-white border-white/50" />
-                            <Button variant="ghost" size="icon" className="text-white"><Heart className="w-7 h-7" /></Button>
-                            <Button variant="ghost" size="icon" className="text-white"><Send className="w-7 h-7" /></Button>
+                             <Button variant="ghost" className="text-white/80 bg-black/50 rounded-full w-full justify-start px-4" onClick={() => setShowComments(true)}>
+                                Add a comment...
+                            </Button>
+                            <Button variant="ghost" size="icon" className="text-white" onClick={handleLike} disabled={isLiking}>
+                                <Heart className={cn("w-7 h-7", isLiked && "fill-red-500 text-red-500")} />
+                            </Button>
                         </div>
                     )}
                 </div>
             </div>
-        </Sheet>
+        </>
     );
 }
