@@ -200,6 +200,7 @@ export default function StatusPage() {
     
     const videoRef = useRef<HTMLVideoElement>(null);
     const progressTimerRef = useRef<NodeJS.Timeout>();
+    const elapsedTimeRef = useRef(0);
     
     const currentStatus = statuses[currentIndex];
     const isOwner = appUser?.uid === currentStatus?.authorId;
@@ -267,6 +268,7 @@ export default function StatusPage() {
     // Effect to reset progress when the status item changes
     useEffect(() => {
         setProgress(0);
+        elapsedTimeRef.current = 0;
     }, [currentIndex]);
 
 
@@ -274,10 +276,13 @@ export default function StatusPage() {
     useEffect(() => {
         if (!currentStatus) return;
 
-        // If paused, clear timer and pause video
-        if (isPaused) {
+        // If paused by user or a sheet is open, clear timer and pause video
+        if (isPaused || showComments || showViewers) {
             clearInterval(progressTimerRef.current);
             videoRef.current?.pause();
+            // Record how much time has elapsed when we pause
+            const duration = currentStatus.mediaType === 'image' ? 5000 : (videoRef.current?.duration || 0) * 1000;
+            elapsedTimeRef.current = (progress / 100) * duration;
             return;
         }
 
@@ -295,7 +300,8 @@ export default function StatusPage() {
                 if (currentStatus.mediaType === 'image') nextStatus();
                 return;
             }
-            const startTime = Date.now() - (progress / 100 * durationMs);
+            // On resume, subtract the already elapsed time.
+            const startTime = Date.now() - elapsedTimeRef.current;
             
             progressTimerRef.current = setInterval(() => {
                 const newProgress = Math.min(100, ((Date.now() - startTime) / durationMs) * 100);
@@ -321,27 +327,26 @@ export default function StatusPage() {
         }
 
         return () => clearInterval(progressTimerRef.current);
-    }, [isPaused, currentStatus, nextStatus, appUser, firestore, progress]);
+    }, [isPaused, showComments, showViewers, currentStatus, nextStatus, appUser, firestore, progress]);
     
     
     const handleLike = async () => {
-        if (!appUser || !currentStatus || isLiking || !firestore) return;
+        if (!appUser || !currentStatus || isLiking) return;
         
         setIsLiking(true);
         const wasLiked = isLiked;
         
         // Optimistic update
         setIsLiked(!wasLiked);
-        const newStatuses = statuses.map(s => {
+        setStatuses(statuses.map(s => {
             if (s.id === currentStatus.id) {
                 return { ...s, likesCount: (s.likesCount || 0) + (wasLiked ? -1 : 1) };
             }
             return s;
-        });
-        setStatuses(newStatuses);
+        }));
         
         try {
-            await toggleStatusLike(firestore, currentStatus.authorId, currentStatus.id, appUser.uid);
+            await toggleStatusLike(currentStatus.authorId, currentStatus.id, appUser.uid);
         } catch (e) {
             console.error(e);
             toast({ title: 'Error', description: 'Could not like status.', variant: 'destructive'});
@@ -354,13 +359,12 @@ export default function StatusPage() {
     }
     
     const onCommentAdded = () => {
-        const newStatuses = statuses.map(s => {
+        setStatuses(statuses.map(s => {
             if (s.id === currentStatus.id) {
                 return { ...s, commentsCount: (s.commentsCount || 0) + 1 };
             }
             return s;
-        });
-        setStatuses(newStatuses);
+        }));
     };
 
     if (loading) {

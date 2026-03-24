@@ -46,7 +46,8 @@ const createNotification = async (firestore: Firestore, data: {
 
 
 // --- Like ---
-export const toggleLike = async (firestore: Firestore, postId: string, userId: string): Promise<boolean> => {
+export const toggleLike = async (postId: string, userId: string): Promise<boolean> => {
+  const firestore = defaultFirestore;
   const postRef = doc(firestore, 'posts', postId);
   const likeRef = doc(firestore, 'posts', postId, 'likes', userId);
   const userLikeRef = doc(firestore, 'users', userId, 'likes', postId);
@@ -91,7 +92,8 @@ export const toggleLike = async (firestore: Firestore, postId: string, userId: s
 
 
 // --- Save ---
-export const toggleSave = async (firestore: Firestore, postId: string, userId: string): Promise<boolean> => {
+export const toggleSave = async (postId: string, userId: string): Promise<boolean> => {
+  const firestore = defaultFirestore;
   const saveRef = doc(firestore, 'users', userId, 'saved', postId);
   try {
     const saveSnap = await getDoc(saveRef);
@@ -110,7 +112,8 @@ export const toggleSave = async (firestore: Firestore, postId: string, userId: s
 
 
 // --- Comment ---
-export const addComment = async (firestore: Firestore, postId: string, authorId: string, text: string) => {
+export const addComment = async (postId: string, authorId: string, text: string) => {
+    const firestore = defaultFirestore;
     if (!text.trim()) throw new Error("Comment cannot be empty");
 
     const postRef = doc(firestore, 'posts', postId);
@@ -154,7 +157,8 @@ export const addComment = async (firestore: Firestore, postId: string, authorId:
 };
 
 // --- Follow ---
-export const toggleFollow = async (firestore: Firestore, currentUserId: string, targetUserId: string): Promise<boolean> => {
+export const toggleFollow = async (currentUserId: string, targetUserId: string): Promise<boolean> => {
+    const firestore = defaultFirestore;
     if (currentUserId === targetUserId) {
         console.error("Users cannot follow themselves.");
         throw new Error("Users cannot follow themselves.");
@@ -201,7 +205,8 @@ export const toggleFollow = async (firestore: Firestore, currentUserId: string, 
 }
 
 // --- Status Like ---
-export const toggleStatusLike = async (firestore: Firestore, authorId: string, statusId: string, userId: string): Promise<boolean> => {
+export const toggleStatusLike = async (authorId: string, statusId: string, userId: string): Promise<boolean> => {
+    const firestore = defaultFirestore;
     const statusRef = doc(firestore, 'users', authorId, 'statuses', statusId);
     const likeRef = doc(firestore, 'users', authorId, 'statuses', statusId, 'likes', userId);
 
