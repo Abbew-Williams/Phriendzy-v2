@@ -44,6 +44,9 @@ export const uploadFile = async (file: File, onProgress: (percentage: number) =>
         }
     } catch (error: any) {
         console.error('Upload failed:', error);
+        if (error.message.includes('Failed to fetch')) {
+            throw new Error('Network Error: Could not connect to the upload server. This is often a CORS issue. Please check your browser\'s developer console (Network tab) for more details.');
+        }
         throw new Error(error.message || 'Upload failed due to an unknown error.');
     }
 };
