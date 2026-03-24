@@ -36,14 +36,14 @@ function MyStatus() {
   
   return (
     <div className="flex flex-col items-center gap-2 flex-shrink-0 w-20">
-      <Link href={`/status/${appUser.uid}`}>
-        <div className="relative cursor-pointer">
+      <div className="relative">
+        <Link href={`/status/${appUser.uid}`}>
           <UserAvatar user={appUser} className="w-16 h-16" />
-          <Button size="icon" className="absolute -right-1 -bottom-1 h-6 w-6 rounded-full border-2 border-background as-child">
-            <Link href="/create-status"><Plus className="w-4 h-4"/></Link>
-          </Button>
-        </div>
-      </Link>
+        </Link>
+        <Button asChild size="icon" className="absolute -right-1 -bottom-1 h-6 w-6 rounded-full border-2 border-background">
+          <Link href="/create-status"><Plus className="w-4 h-4"/></Link>
+        </Button>
+      </div>
       <p className="text-xs truncate w-full text-center font-semibold">Your Story</p>
     </div>
   );
