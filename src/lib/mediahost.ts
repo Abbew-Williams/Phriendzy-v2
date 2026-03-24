@@ -8,8 +8,8 @@ const VIDEO_MAX_BYTES = 100 * 1024 * 1024; // skip compression if already < 100 
 
 // ── Unique ID generator ───────────────────────────────────────────────────────
 function uuid(): string {
-  return global.crypto?.randomUUID
-    ? global.crypto.randomUUID()
+  return globalThis.crypto?.randomUUID
+    ? globalThis.crypto.randomUUID()
     : Math.random().toString(36).slice(2) + Date.now().toString(36);
 }
 
@@ -83,7 +83,7 @@ async function compressVideo(file: File, onProgress?: ProgressCallback): Promise
             }
             return;
         }
-        ctx.drawImage(videoEl, 0, 0);
+        ctx!.drawImage(videoEl, 0, 0);
         const pct = Math.min(90, Math.round((videoEl.currentTime / videoEl.duration) * 90));
         onProgress?.(pct, 'Compressing video…');
         requestAnimationFrame(drawFrame);
@@ -150,7 +150,7 @@ async function uploadChunked(
 
     uploaded++;
     const pct = 90 + Math.round((uploaded / totalChunks) * 10);
-    onProgress?.(Math.min(pct, 99), 'Uploading…');
+    onProgress?.(Math.min(pct, 99), `Uploading chunk ${uploaded}/${totalChunks}`);
     return data;
   }
 
@@ -175,6 +175,11 @@ export interface UploadResult {
     url: string;
     direct_url: string;
     error?: string;
+    id?: number;
+    short_code?: string;
+    file_name?: string;
+    mime_type?: string;
+    size_bytes?: number;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -186,6 +191,10 @@ export async function uploadFile(file: File, options: UploadOptions): Promise<Up
     apiKey = '',
     onProgress,
   } = options;
+
+  if (!apiUrl) {
+    throw new Error('MediaHost API URL is not configured.');
+  }
 
   const isVideo = file.type.startsWith('video/');
   let blob: Blob = file;
