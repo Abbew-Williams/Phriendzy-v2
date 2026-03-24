@@ -43,6 +43,7 @@ export default function AdminPage() {
   const [goLiveMin, setGoLiveMin] = useState(10);
   const [aiContentScanning, setAiContentScanning] = useState(false);
   const [aiSensitivity, setAiSensitivity] = useState('medium');
+  const [mediaApiBaseUrl, setMediaApiBaseUrl] = useState('');
   const [isSavingSettings, setIsSavingSettings] = useState(false);
 
   const [growthPeriod, setGrowthPeriod] = useState('yearly');
@@ -86,6 +87,7 @@ export default function AdminPage() {
                 setGoLiveMin(settingsData.goLiveFollowerMinimum || 10);
                 setAiContentScanning(settingsData.aiContentScanningEnabled || false);
                 setAiSensitivity(settingsData.aiViolationSensitivity || 'medium');
+                setMediaApiBaseUrl(settingsData.mediaApiBaseUrl || '');
             }
 
         } catch (error) {
@@ -198,7 +200,8 @@ export default function AdminPage() {
         await setDoc(settingsRef, { 
             goLiveFollowerMinimum: Number(goLiveMin),
             aiContentScanningEnabled: aiContentScanning,
-            aiViolationSensitivity: aiSensitivity
+            aiViolationSensitivity: aiSensitivity,
+            mediaApiBaseUrl: mediaApiBaseUrl
         }, { merge: true });
         toast({ title: 'Settings Saved', description: 'Your changes have been applied.' });
     } catch (error) {
@@ -393,6 +396,22 @@ export default function AdminPage() {
                     )}
                 </CardContent>
              </Card>
+
+              <Card>
+                <CardHeader>
+                    <CardTitle>Media Upload</CardTitle>
+                    <CardDescription>Configure the external media upload service.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                    {loadingData ? <Skeleton className="h-10 w-full"/> : (
+                        <div className="space-y-2">
+                            <Label htmlFor="media-api-url">Media Upload API URL</Label>
+                            <Input id="media-api-url" type="url" placeholder="e.g., http://yourserver/upload/api_upload.php" value={mediaApiBaseUrl} onChange={(e) => setMediaApiBaseUrl(e.target.value)} />
+                            <p className="text-sm text-muted-foreground">The full endpoint URL for your custom file upload service.</p>
+                        </div>
+                    )}
+                </CardContent>
+             </Card>
              
              <Card>
                 <CardHeader>
@@ -430,7 +449,7 @@ export default function AdminPage() {
 
              <Card>
                 <CardHeader>
-                    <CardTitle>Application Wide Settings</CardTitle>
+                    <CardTitle>Save All Settings</CardTitle>
                 </CardHeader>
                 <CardContent>
                      <Button onClick={handleSettingsSave} loading={isSavingSettings}>Save Settings</Button>

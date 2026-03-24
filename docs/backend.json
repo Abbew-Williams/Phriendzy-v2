@@ -146,6 +146,10 @@
           "type": "string",
           "enum": ["low", "medium", "high"],
           "description": "The sensitivity level for AI violation detection."
+        },
+        "mediaApiBaseUrl": {
+          "type": "string",
+          "description": "The base URL for the custom media upload API."
         }
       }
     }
