@@ -166,20 +166,27 @@ async function uploadChunked(
       'X-File-Type': mimeType,
     };
     if (apiKey) headers['X-API-Key'] = apiKey;
+    
+    let res;
+    try {
+        res = await fetch(apiUrl, { method: 'POST', headers, body: form });
+    } catch (error: any) {
+         if (error instanceof TypeError && error.message === 'Failed to fetch') {
+            throw new Error(`Network Error: Communication with the upload server at "${apiUrl}" failed. This is likely a CORS issue or the server is unreachable. Please check the server configuration and the browser's developer console for more details.`);
+        }
+        throw error;
+    }
 
-    const res = await fetch(apiUrl, { method: 'POST', headers, body: form });
 
     if (!res.ok) {
         let errorMsg = `Upload failed with status: ${res.status}`;
         try {
-            // Try to parse the error response as JSON, as defined by the API docs
             const errorBody = await res.text();
             const errorJson = JSON.parse(errorBody);
             if (errorJson.error) {
                 errorMsg = errorJson.error;
             }
         } catch {
-            // If it's not JSON, it's likely a server error (e.g., PHP fatal error)
             errorMsg = `Server returned a non-JSON error (status ${res.status}). Check server logs for details.`;
         }
         throw new Error(errorMsg);
@@ -265,7 +272,16 @@ export async function uploadFile(file: File, options: UploadOptions): Promise<Up
   if (apiKey) headers['X-API-Key'] = apiKey;
 
   onProgress?.(50, 'Uploading…');
-  const res = await fetch(apiUrl, { method: 'POST', headers, body: form });
+  
+  let res;
+  try {
+    res = await fetch(apiUrl, { method: 'POST', headers, body: form });
+  } catch (error: any) {
+    if (error instanceof TypeError && error.message === 'Failed to fetch') {
+      throw new Error(`Network Error: Communication with the upload server at "${apiUrl}" failed. This is likely a CORS issue or the server is unreachable. Please check the server configuration and the browser's developer console for more details.`);
+    }
+    throw error;
+  }
 
   if (!res.ok) {
       let errorMsg = `Upload failed with status: ${res.status}`;
