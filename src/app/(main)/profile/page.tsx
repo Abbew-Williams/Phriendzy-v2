@@ -38,6 +38,7 @@ export default function ProfilePage() {
     const postsQuery = query(
       collection(firestore, 'posts'),
       where('authorId', '==', appUser.uid),
+      // where('privacy', '==', 'public'), // Only showing public posts for now to prevent security rule errors
       orderBy('createdAt', 'desc')
     );
     
@@ -46,7 +47,18 @@ export default function ProfilePage() {
         setPostsLoading(false);
     }, (error) => {
         console.error("Error fetching user posts:", error);
-        setPostsLoading(false);
+        // Fallback to only public posts if the general query fails due to security rules
+        const publicOnlyQuery = query(
+            collection(firestore, 'posts'),
+            where('authorId', '==', appUser.uid),
+            where('privacy', '==', 'public'),
+            orderBy('createdAt', 'desc')
+        );
+        const unsubPublic = onSnapshot(publicOnlyQuery, (snapshot) => {
+            setUserPosts(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Post)));
+            setPostsLoading(false);
+        });
+        return unsubPublic;
     });
 
     return () => unsubscribe();

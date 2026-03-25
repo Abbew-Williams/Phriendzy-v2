@@ -57,7 +57,7 @@ export default function UserProfilePage() {
           setProfileUser(userData);
 
           // Set up listener for posts
-          const postsQuery = query(collection(firestore, 'posts'), where('authorId', '==', userData.uid), orderBy('createdAt', 'desc'));
+          const postsQuery = query(collection(firestore, 'posts'), where('authorId', '==', userData.uid), where('privacy', '==', 'public'), orderBy('createdAt', 'desc'));
           unsubscribePosts = onSnapshot(postsQuery, (postsSnapshot) => {
             setUserPosts(postsSnapshot.docs.map(d => ({ ...d.data(), id: d.id } as Post)));
             setPostsLoading(false);
@@ -226,8 +226,8 @@ export default function UserProfilePage() {
                 </div>
               ) : (
                 <div className="flex flex-col items-center justify-center h-64 border-2 border-dashed rounded-lg mt-6">
-                    <h3 className="text-xl font-semibold">No posts yet</h3>
-                    <p className="text-muted-foreground mt-2">This user hasn't shared any posts.</p>
+                    <h3 className="text-xl font-semibold">No public posts</h3>
+                    <p className="text-muted-foreground mt-2">This user hasn't shared any public posts.</p>
                 </div>
               )}
           </TabsContent>

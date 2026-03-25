@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { FullScreenPost } from '@/components/full-screen-post';
 import { useUser, useFirestore } from '@/firebase';
-import { collection, getDocs, limit, orderBy, query, doc, getDoc, onSnapshot } from 'firebase/firestore';
+import { collection, getDocs, limit, orderBy, query, doc, getDoc, onSnapshot, where } from 'firebase/firestore';
 import type { Post, User } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 
@@ -19,7 +19,7 @@ export default function HomePage() {
     if (!firestore) return;
     setLoading(true);
 
-    const postsQuery = query(collection(firestore, 'posts'), orderBy('createdAt', 'desc'), limit(20));
+    const postsQuery = query(collection(firestore, 'posts'), where('privacy', '==', 'public'), orderBy('createdAt', 'desc'), limit(20));
 
     const unsubscribe = onSnapshot(postsQuery, async (querySnapshot) => {
       const postsData = await Promise.all(querySnapshot.docs.map(async (postDoc) => {
