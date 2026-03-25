@@ -9,11 +9,13 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 
+// ── Correct full path to api_upload.php on your server ───────────────────────
+// Your MediaHost files live in the /upload/ subfolder on app.phriendzy.com
 const MEDIAHOST = 'https://app.phriendzy.com/upload/api_upload.php';
 
 export async function POST(req: NextRequest) {
   try {
-    // ── Forward the chunk metadata headers PHP reads via $_SERVER ────────────
+    // ── Forward chunk metadata headers PHP reads via $_SERVER ─────────────────
     const forward: Record<string, string> = {};
 
     const passthroughHeaders = [
@@ -30,14 +32,15 @@ export async function POST(req: NextRequest) {
       if (val !== null) forward[h] = val;
     }
 
-    // ── CRITICAL: forward Content-Type WITH the multipart boundary ───────────
+    // ── CRITICAL: forward Content-Type WITH the multipart boundary ────────────
     // Without the boundary string PHP cannot parse $_FILES at all.
-    // The boundary looks like: multipart/form-data; boundary=----WebKitFormBoundaryXYZ
     const contentType = req.headers.get('content-type');
     if (contentType) forward['content-type'] = contentType;
 
-    // ── Stream the raw request body straight through ──────────────────────────
+    // ── Stream the raw request body straight through ───────────────────────────
     const body = await req.arrayBuffer();
+
+    console.log(`[upload proxy] → POST ${MEDIAHOST} (${body.byteLength} bytes)`);
 
     const mediaHostRes = await fetch(MEDIAHOST, {
       method:  'POST',
@@ -46,17 +49,18 @@ export async function POST(req: NextRequest) {
     });
 
     const text = await mediaHostRes.text();
+    console.log(`[upload proxy] ← HTTP ${mediaHostRes.status}, body: ${text.slice(0, 120)}`);
 
-    // ── Always return JSON — wrap PHP crash HTML if needed ───────────────────
+    // ── Always return JSON ─────────────────────────────────────────────────────
     let json: Record<string, unknown>;
     try {
       json = JSON.parse(text);
     } catch {
-      console.error('[upload proxy] MediaHost non-JSON response:', text.slice(0, 400));
+      console.error('[upload proxy] non-JSON from MediaHost:', text.slice(0, 400));
       return NextResponse.json(
         {
           success: false,
-          error:   `MediaHost server error (HTTP ${mediaHostRes.status}). Check server logs.`,
+          error:   `MediaHost error (HTTP ${mediaHostRes.status}). Check that the file exists at: ${MEDIAHOST}`,
           raw:     text.slice(0, 400),
         },
         { status: 502 }
@@ -69,10 +73,7 @@ export async function POST(req: NextRequest) {
     const msg = err instanceof Error ? err.message : String(err);
     console.error('[upload proxy] fetch failed:', msg);
     return NextResponse.json(
-      {
-        success: false,
-        error:   `Proxy could not reach MediaHost: ${msg}`,
-      },
+      { success: false, error: `Proxy could not reach MediaHost: ${msg}` },
       { status: 503 }
     );
   }
