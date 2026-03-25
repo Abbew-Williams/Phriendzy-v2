@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useFirestore } from '@/firebase';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc, onSnapshot } from 'firebase/firestore';
 import type { Post, User } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { PostCard } from '@/components/post-card';
@@ -17,34 +17,37 @@ export default function PostPage({ params }: { params: { postId: string } }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchPost = async () => {
-      if (!firestore || !params.postId) return;
-      setLoading(true);
-      try {
-        const postRef = doc(firestore, 'posts', params.postId);
-        const postSnap = await getDoc(postRef);
+    if (!firestore || !params.postId) return;
+    setLoading(true);
 
-        if (postSnap.exists()) {
-          const postData = postSnap.data();
-          const authorRef = doc(firestore, 'users', postData.authorId);
-          const authorSnap = await getDoc(authorRef);
-          const author = authorSnap.exists() ? { uid: authorSnap.id, id: authorSnap.id, ...authorSnap.data() } as User : null;
+    const postRef = doc(firestore, 'posts', params.postId);
 
-          if (author) {
-            setPost({
-              ...postData,
-              id: postSnap.id,
-              author,
-            } as Post);
-          }
+    const unsubscribe = onSnapshot(postRef, async (postSnap) => {
+      if (postSnap.exists()) {
+        const postData = postSnap.data();
+        const authorRef = doc(firestore, 'users', postData.authorId);
+        const authorSnap = await getDoc(authorRef);
+        const author = authorSnap.exists() ? { uid: authorSnap.id, id: authorSnap.id, ...authorSnap.data() } as User : null;
+
+        if (author) {
+          setPost({
+            ...postData,
+            id: postSnap.id,
+            author,
+          } as Post);
+        } else {
+          setPost(null); // Author not found
         }
-      } catch (error) {
-        console.error("Error fetching post: ", error);
+      } else {
+        setPost(null); // Post not found
       }
       setLoading(false);
-    };
+    }, (error) => {
+      console.error("Error fetching post: ", error);
+      setLoading(false);
+    });
 
-    fetchPost();
+    return () => unsubscribe();
   }, [firestore, params.postId]);
 
   if (loading) {
@@ -63,7 +66,7 @@ export default function PostPage({ params }: { params: { postId: string } }) {
             <ArrowLeft className="mr-2 h-4 w-4" /> Go Back
         </Button>
         <h2 className="text-2xl font-bold">Post not found</h2>
-        <p className="text-muted-foreground">This post may have been deleted.</p>
+        <p className="text-muted-foreground">This post may have been deleted or the author's account no longer exists.</p>
       </div>
     );
   }
