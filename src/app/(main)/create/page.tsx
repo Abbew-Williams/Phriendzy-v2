@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useUser } from '@/firebase';
-import { uploadFile } from '@/lib/uploader';
+import { uploadFile } from '@/firebase/storage';
 import { createPost } from '@/firebase/firestore/posts';
 import { users } from '@/lib/data';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -23,10 +23,7 @@ import { Progress } from '@/components/ui/progress';
 const MAX_CAPTION_LENGTH = 10000;
 const MAX_HASHTAGS = 20;
 
-type CreateStep = 'select' | 'edit' | 'details';
-
 export default function CreatePage() {
-  const [step, setStep] = useState<CreateStep>('select');
   const [file, setFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [caption, setCaption] = useState('');
@@ -46,13 +43,6 @@ export default function CreatePage() {
   const { user } = useUser();
   const captionRef = useRef<HTMLTextAreaElement>(null);
 
-  const showComingSoonToast = (featureName: string) => {
-    toast({
-      title: 'Coming Soon!',
-      description: `${featureName} functionality is not yet implemented.`,
-    });
-  };
-
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = event.target.files?.[0];
     if (selectedFile) {
@@ -65,7 +55,6 @@ export default function CreatePage() {
       const reader = new FileReader();
       reader.onloadend = () => {
         setPreviewUrl(reader.result as string);
-        setStep('edit');
       };
       reader.readAsDataURL(selectedFile);
     }
@@ -122,7 +111,6 @@ export default function CreatePage() {
     setCaption('');
     setPrivacy('public');
     setAllowComments(true);
-    setStep('select');
   };
 
   const handleSubmit = async (event: React.FormEvent) => {
@@ -163,22 +151,25 @@ export default function CreatePage() {
 
     } catch (error: any) {
       console.error('Error creating post:', error);
-      let description = 'Could not create your post. Please try again.';
-      if (error?.code === 'storage/unauthorized') {
-          description = 'You do not have permission to upload this file. Please check the Storage security rules in your Firebase project.';
-      } else if (error.message) {
-          description = error.message;
-      }
+      const description = error.message || 'Could not create your post. Please try again.';
       toast({ title: 'Upload Failed', description: description, variant: 'destructive' });
     } finally {
       setIsUploading(false);
     }
   };
   
-  if (step === 'select') {
+  if (!previewUrl) {
     return (
       <div className="w-full p-4 sm:p-6 lg:p-8 flex flex-col items-center justify-center h-[calc(100vh-10rem)]">
         <Card className="w-full max-w-lg">
+          <CardHeader>
+             <div className="flex items-center gap-4">
+                  <Button variant="ghost" size="icon" onClick={() => router.back()}>
+                      <ArrowLeft />
+                  </Button>
+                  <CardTitle>Create new post</CardTitle>
+              </div>
+          </CardHeader>
           <CardContent className="p-6">
              <div className="relative flex flex-col items-center justify-center w-full h-80 border-2 border-dashed rounded-lg cursor-pointer hover:bg-muted">
                 <label htmlFor="file-upload" className="flex flex-col items-center justify-center w-full h-full cursor-pointer">
@@ -194,58 +185,13 @@ export default function CreatePage() {
     );
   }
 
-  if (step === 'edit') {
-    return (
-        <div className="w-full p-4 sm:p-6 lg:p-8">
-            <Card className="overflow-hidden md:max-w-5xl md:mx-auto">
-                <CardHeader>
-                    <div className="flex items-center gap-4">
-                        <Button variant="ghost" size="icon" onClick={() => discardPost()}>
-                            <ArrowLeft />
-                        </Button>
-                        <CardTitle>Edit</CardTitle>
-                    </div>
-                </CardHeader>
-                <CardContent>
-                    <div className="grid grid-cols-1 md:grid-cols-[1fr_200px] min-h-[60vh] gap-4">
-                        <div className="w-full h-full rounded-md overflow-hidden relative bg-black">
-                            {previewUrl && file && (
-                                file.type.startsWith('image/') ? (
-                                  <Image src={previewUrl} alt="Preview" fill style={{objectFit: "contain"}} />
-                                ) : (
-                                  <video src={previewUrl} controls autoPlay loop muted className="w-full h-full object-contain" />
-                                )
-                            )}
-                        </div>
-                        <div className="flex flex-col border rounded-md bg-background p-4 space-y-2">
-                            <p className="font-semibold text-muted-foreground">Editing Tools</p>
-                            <Button variant="ghost" className="justify-start" onClick={() => showComingSoonToast('Trim')}>
-                                <Scissors className="mr-2 h-4 w-4" /> Trim
-                            </Button>
-                            <Button variant="ghost" className="justify-start" onClick={() => showComingSoonToast('Add Music')}>
-                                <Music className="mr-2 h-4 w-4" /> Music
-                            </Button>
-                            <Button variant="ghost" className="justify-start" onClick={() => showComingSoonToast('Auto Cut')}>
-                                <Wand2 className="mr-2 h-4 w-4" /> Auto Cut
-                            </Button>
-                            <div className="!mt-auto pt-6 flex flex-col gap-2">
-                                <Button onClick={() => setStep('details')} className="w-full">Next</Button>
-                            </div>
-                        </div>
-                    </div>
-                </CardContent>
-            </Card>
-        </div>
-    );
-  }
-
   return (
     <div className="w-full p-4 sm:p-6 lg:p-8">
       <form onSubmit={handleSubmit}>
         <Card className="overflow-hidden md:max-w-5xl md:mx-auto">
           <CardHeader>
               <div className="flex items-center gap-4">
-                  <Button variant="ghost" size="icon" onClick={() => setStep('edit')}>
+                  <Button variant="ghost" size="icon" onClick={() => setPreviewUrl(null)}>
                       <ArrowLeft />
                   </Button>
                   <CardTitle>Create new post</CardTitle>

@@ -8,7 +8,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useUser } from '@/firebase';
-import { uploadFile } from '@/lib/uploader';
+import { uploadFile } from '@/firebase/storage';
 import { createStatus } from '@/firebase/firestore/statuses';
 import { Progress } from '@/components/ui/progress';
 
@@ -73,12 +73,7 @@ export default function CreateStatusPage() {
 
     } catch (error: any) {
       console.error('Error creating status:', error);
-      let description = 'Could not post your status. Please try again.';
-      if (error?.code === 'storage/unauthorized') {
-          description = 'You do not have permission to upload this file. Please check the Storage security rules in your Firebase project.';
-      } else if (error.message) {
-          description = error.message;
-      }
+      const description = error.message || 'Could not post your status. Please try again.';
       toast({ title: 'Upload Failed', description, variant: 'destructive' });
     } finally {
       setIsUploading(false);

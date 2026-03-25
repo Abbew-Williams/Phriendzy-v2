@@ -16,7 +16,7 @@ import { useEffect, useState, useRef } from 'react';
 import { differenceInDays, parseISO } from 'date-fns';
 import { serverTimestamp } from 'firebase/firestore';
 import { updateUserProfile } from '@/firebase/firestore/users';
-import { uploadFile } from '@/lib/uploader';
+import { uploadFile } from '@/firebase/storage';
 
 const profileFormSchema = z.object({
   username: z.string().min(3, 'Username must be at least 3 characters.'),
