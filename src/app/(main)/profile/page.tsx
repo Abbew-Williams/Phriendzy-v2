@@ -40,7 +40,6 @@ export default function ProfilePage() {
     const postsQuery = query(
       collection(firestore, 'posts'),
       where('authorId', '==', appUser.uid),
-      where('privacy', '==', 'public'), // Only showing public posts for now
       orderBy('createdAt', 'desc')
     );
     
