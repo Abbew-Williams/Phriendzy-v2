@@ -131,7 +131,7 @@ export default function HomePage() {
 
   if (loading) {
     return (
-       <div className="w-full h-screen snap-y snap-mandatory overflow-y-auto overflow-x-hidden md:h-full md:mx-auto md:max-w-md md:border-x no-scrollbar">
+       <div className="w-full h-full snap-y snap-mandatory overflow-y-auto overflow-x-hidden md:mx-auto md:max-w-md md:border-x no-scrollbar">
         {[...Array(3)].map((_, i) => (
            <div key={i} className="h-full w-full snap-start flex items-center justify-center relative bg-black">
               <Skeleton className="w-full h-full" />
@@ -142,7 +142,7 @@ export default function HomePage() {
   }
 
   return (
-    <div className="w-full h-screen snap-y snap-mandatory overflow-y-auto overflow-x-hidden md:h-full md:mx-auto md:max-w-md md:border-x no-scrollbar">
+    <div className="w-full h-full snap-y snap-mandatory overflow-y-auto overflow-x-hidden md:mx-auto md:max-w-md md:border-x no-scrollbar">
       {posts.length > 0 ? (
         posts.map((post) => (
           <div
