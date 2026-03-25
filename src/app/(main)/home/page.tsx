@@ -23,7 +23,12 @@ export default function HomePage() {
     };
     setLoading(true);
 
-    const postsQuery = query(collection(firestore, 'posts'), where('privacy', '==', 'public'), limit(20));
+    const postsQuery = query(
+      collection(firestore, 'posts'), 
+      where('privacy', '==', 'public'), 
+      orderBy('createdAt', 'desc'), 
+      limit(20)
+    );
 
     const unsubscribe = onSnapshot(postsQuery, async (querySnapshot) => {
       
@@ -54,13 +59,6 @@ export default function HomePage() {
       }));
       
       const finalPosts = postsData.filter(Boolean) as Post[];
-
-      // Sort posts on the client side
-      finalPosts.sort((a, b) => {
-        const timeA = a.createdAt?.toDate ? a.createdAt.toDate().getTime() : 0;
-        const timeB = b.createdAt?.toDate ? b.createdAt.toDate().getTime() : 0;
-        return timeB - timeA;
-      });
 
       setPosts(finalPosts);
       setLoading(false);
