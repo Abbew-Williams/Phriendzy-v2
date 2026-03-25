@@ -177,12 +177,17 @@ export default function MessagesPage() {
                     })
                 );
 
+                const isUnread = data.lastMessageAuthorId && data.lastMessageAuthorId !== appUser.uid && data.lastMessage;
+
                 return {
                     id: chatDoc.id,
                     participants: participantsData.filter(p => p) as User[],
                     lastMessage: data.lastMessage || 'No messages yet.',
                     lastMessageTimestamp: data.updatedAt,
-                    unreadCount: 0, // Placeholder
+                    unreadCount: isUnread ? 1 : 0,
+                    updatedAt: data.updatedAt,
+                    createdAt: data.createdAt,
+                    lastMessageAuthorId: data.lastMessageAuthorId,
                 } as Chat;
             }));
             
@@ -190,6 +195,8 @@ export default function MessagesPage() {
             const sortedChats = chatsData
                 .filter(c => c.participants.length > 1 && c.lastMessageTimestamp)
                 .sort((a, b) => {
+                    if (!a.lastMessageTimestamp) return 1;
+                    if (!b.lastMessageTimestamp) return -1;
                     const timeA = a.lastMessageTimestamp.toDate().getTime();
                     const timeB = b.lastMessageTimestamp.toDate().getTime();
                     return timeB - timeA;

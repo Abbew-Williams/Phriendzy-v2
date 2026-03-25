@@ -125,6 +125,7 @@ export default function ChatPage() {
         await updateDoc(chatRef, {
             lastMessage: text,
             updatedAt: serverTimestamp(),
+            lastMessageAuthorId: appUser.uid,
         });
     } catch (error) {
       console.error("Error sending message: ", error);

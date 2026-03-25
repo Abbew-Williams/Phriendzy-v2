@@ -86,7 +86,8 @@
       "properties": {
         "participants": { "type": "array", "items": { "type": "string" } },
         "lastMessage": { "type": "string" },
-        "updatedAt": { "type": "string", "format": "date-time" }
+        "updatedAt": { "type": "string", "format": "date-time" },
+        "lastMessageAuthorId": { "type": "string", "description": "UID of the user who sent the last message." }
       },
       "required": ["participants", "updatedAt"]
     },

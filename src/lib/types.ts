@@ -84,6 +84,7 @@ export type Chat = {
     unreadCount: number;
     updatedAt: any;
     createdAt: any;
+    lastMessageAuthorId?: string;
 };
 
 export type Message = {
