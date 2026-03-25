@@ -56,12 +56,17 @@ export default function UserProfilePage() {
           const userData = { ...userDoc.data(), id: userDoc.id } as AppUser;
           setProfileUser(userData);
 
-          // Set up listener for posts
-          // The query now fetches all posts by the author and we filter for public ones on the client.
-          // This avoids a complex Firestore index that was causing deployment issues.
-          const postsQuery = query(collection(firestore, 'posts'), where('authorId', '==', userData.uid), orderBy('createdAt', 'desc'));
+          const postsQuery = query(collection(firestore, 'posts'), where('authorId', '==', userData.uid));
           unsubscribePosts = onSnapshot(postsQuery, (postsSnapshot) => {
             const allPosts = postsSnapshot.docs.map(d => ({ ...d.data(), id: d.id } as Post));
+            
+            // Sort posts by creation date, newest first
+            allPosts.sort((a, b) => {
+                const timeA = a.createdAt?.toDate ? a.createdAt.toDate().getTime() : 0;
+                const timeB = b.createdAt?.toDate ? b.createdAt.toDate().getTime() : 0;
+                return timeB - timeA;
+            });
+
             const publicPosts = allPosts.filter(p => p.privacy === 'public');
             setUserPosts(publicPosts);
             setPostsLoading(false);

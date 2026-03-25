@@ -39,8 +39,7 @@ export default function ProfilePage() {
     setPostsLoading(true);
     const postsQuery = query(
       collection(firestore, 'posts'),
-      where('authorId', '==', appUser.uid),
-      orderBy('createdAt', 'desc')
+      where('authorId', '==', appUser.uid)
     );
     
     const unsubscribe = onSnapshot(postsQuery, (querySnapshot) => {
@@ -51,6 +50,14 @@ export default function ProfilePage() {
                 author: appUser,
             } as Post;
         });
+
+        // Sort posts by creation date, newest first
+        postsData.sort((a, b) => {
+            const timeA = a.createdAt?.toDate ? a.createdAt.toDate().getTime() : 0;
+            const timeB = b.createdAt?.toDate ? b.createdAt.toDate().getTime() : 0;
+            return timeB - timeA;
+        });
+
         setUserPosts(postsData);
         setPostsLoading(false);
     }, (error) => {
