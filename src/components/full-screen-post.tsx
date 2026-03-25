@@ -27,6 +27,7 @@ export function FullScreenPost({ post: initialPost, onInteraction }: FullScreenP
   const [isSaved, setIsSaved] = useState(false);
   const [showHeart, setShowHeart] = useState(false);
   const [showComments, setShowComments] = useState(false);
+  const [isCaptionExpanded, setIsCaptionExpanded] = useState(false);
   
   const videoRef = useRef<HTMLVideoElement>(null);
   const [isMuted, setIsMuted] = useState(true);
@@ -140,6 +141,41 @@ export function FullScreenPost({ post: initialPost, onInteraction }: FullScreenP
     }
   }, []);
 
+  const renderCaption = () => {
+    const caption = post.caption || '';
+    if (!caption) return null;
+
+    const isLongCaption = caption.length > 100;
+
+    const createLinkedText = (text: string) => {
+        return text.split(/([#@]\w+)/g).map((part, index) => {
+            if (part.startsWith('@')) {
+                const username = part.substring(1);
+                return <Link key={index} href={`/profile/${username}`} className="font-bold hover:underline" onClick={e => e.stopPropagation()}>{part}</Link>;
+            }
+            if (part.startsWith('#')) {
+                const tag = part.substring(1);
+                return <Link key={index} href={`/explore?q=${tag}`} className="font-bold hover:underline" onClick={e => e.stopPropagation()}>{part}</Link>;
+            }
+            return part;
+        });
+    };
+
+    return (
+        <div className="text-sm mt-1 text-white/90" onClick={(e) => e.stopPropagation()}>
+            {isLongCaption && !isCaptionExpanded ? (
+                <p>
+                    {caption.substring(0, 100)}...
+                    <button onClick={() => setIsCaptionExpanded(true)} className="font-semibold text-white/80 ml-1 hover:underline">more</button>
+                </p>
+            ) : (
+                <p>{createLinkedText(caption)}</p>
+            )}
+        </div>
+    );
+  };
+
+
   return (
     <div className="relative w-full h-full" onClick={handleDoubleTap}>
       {post.mediaType === 'video' ? (
@@ -177,7 +213,7 @@ export function FullScreenPost({ post: initialPost, onInteraction }: FullScreenP
             <Link href={`/profile/${post.author.username}`} className="font-bold hover:underline block truncate">
               @{post.author.username}
             </Link>
-            <p className="text-sm mt-1 text-white/90">{post.caption}</p>
+            {renderCaption()}
             <div className="flex items-center gap-2 mt-2 text-sm">
                 <Music className="w-4 h-4" />
                 <span className="truncate">Original Audio - {post.author.username}</span>
