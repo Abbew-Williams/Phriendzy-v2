@@ -146,7 +146,7 @@ export default function CreatePage() {
         allowStitch,
       });
 
-      toast({ title: 'Post Created!', description: 'Your post is now live.' });
+      toast({ title: 'Post Created!', description: 'Your post has been successfully published.' });
       router.push('/home');
 
     } catch (error: any) {
