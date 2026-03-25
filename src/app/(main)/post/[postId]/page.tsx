@@ -8,9 +8,10 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { PostCard } from '@/components/post-card';
 import { ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { useRouter } from 'next/navigation';
+import { useRouter, useParams } from 'next/navigation';
 
-export default function PostPage({ params }: { params: { postId: string } }) {
+export default function PostPage() {
+  const params = useParams() as { postId: string };
   const firestore = useFirestore();
   const router = useRouter();
   const [post, setPost] = useState<Post | null>(null);
