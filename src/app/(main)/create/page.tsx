@@ -3,7 +3,7 @@
 import { useState, useRef, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
-import { ImagePlus, ArrowLeft, Scissors, Music, Wand2, Type, User, Lock, Users } from 'lucide-react';
+import { ImagePlus, ArrowLeft, Scissors, Music, Wand2, User, Lock, Users } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -45,6 +45,13 @@ export default function CreatePage() {
   const { toast } = useToast();
   const { user } = useUser();
   const captionRef = useRef<HTMLTextAreaElement>(null);
+
+  const showComingSoonToast = (featureName: string) => {
+    toast({
+      title: 'Coming Soon!',
+      description: `${featureName} functionality is not yet implemented.`,
+    });
+  };
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = event.target.files?.[0];
@@ -209,10 +216,15 @@ export default function CreatePage() {
                         </div>
                         <div className="flex flex-col border rounded-md bg-background p-4 space-y-2">
                             <p className="font-semibold text-muted-foreground">Editing Tools</p>
-                            <Button variant="ghost" className="justify-start"><Scissors className="mr-2 h-4 w-4" /> Trim</Button>
-                            <Button variant="ghost" className="justify-start"><Music className="mr-2 h-4 w-4" /> Music</Button>
-                            <Button variant="ghost" className="justify-start"><Wand2 className="mr-2 h-4 w-4" /> Effects</Button>
-                            <Button variant="ghost" className="justify-start"><Type className="mr-2 h-4 w-4" /> Text</Button>
+                            <Button variant="ghost" className="justify-start" onClick={() => showComingSoonToast('Trim')}>
+                                <Scissors className="mr-2 h-4 w-4" /> Trim
+                            </Button>
+                            <Button variant="ghost" className="justify-start" onClick={() => showComingSoonToast('Add Music')}>
+                                <Music className="mr-2 h-4 w-4" /> Music
+                            </Button>
+                            <Button variant="ghost" className="justify-start" onClick={() => showComingSoonToast('Auto Cut')}>
+                                <Wand2 className="mr-2 h-4 w-4" /> Auto Cut
+                            </Button>
                             <div className="!mt-auto pt-6 flex flex-col gap-2">
                                 <Button onClick={() => setStep('details')} className="w-full">Next</Button>
                             </div>
