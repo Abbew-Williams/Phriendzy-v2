@@ -23,11 +23,12 @@ export default function HomePage() {
     };
     setLoading(true);
 
+    // Fetch the 50 most recent posts, and we will filter for 'public' on the client.
+    // This avoids the composite index requirement that can fail if the index is not ready.
     const postsQuery = query(
       collection(firestore, 'posts'), 
-      where('privacy', '==', 'public'), 
       orderBy('createdAt', 'desc'), 
-      limit(20)
+      limit(50) // Fetch more to have a good pool for public posts
     );
 
     const unsubscribe = onSnapshot(postsQuery, async (querySnapshot) => {
@@ -58,9 +59,12 @@ export default function HomePage() {
         return { ...postData, id: postDoc.id, author } as Post;
       }));
       
-      const finalPosts = postsData.filter(Boolean) as Post[];
+      const allRecentPosts = postsData.filter(Boolean) as Post[];
+      
+      // Filter for public posts on the client and take the first 20.
+      const publicPosts = allRecentPosts.filter(p => p.privacy === 'public').slice(0, 20);
 
-      setPosts(finalPosts);
+      setPosts(publicPosts);
       setLoading(false);
     }, (error) => {
       console.error("Error fetching posts: ", error);
