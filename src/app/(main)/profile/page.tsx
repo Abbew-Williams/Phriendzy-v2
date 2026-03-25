@@ -11,7 +11,7 @@ import { useEffect, useState } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import Link from "next/link";
 import { collection, query, where, orderBy, onSnapshot, doc, getDoc } from 'firebase/firestore';
-import type { User as AppUser, Post } from '@/lib/types';
+import type { User as AppUser, Post } from "@/lib/types";
 import { FollowSheet } from "@/components/follow-sheet";
 
 
@@ -44,7 +44,14 @@ export default function ProfilePage() {
     );
     
     const unsubscribe = onSnapshot(postsQuery, (querySnapshot) => {
-        setUserPosts(querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Post)));
+        const postsData = querySnapshot.docs.map(doc => {
+            return {
+                id: doc.id,
+                ...doc.data(),
+                author: appUser,
+            } as Post;
+        });
+        setUserPosts(postsData);
         setPostsLoading(false);
     }, (error) => {
         console.error("Error fetching user posts:", error);
