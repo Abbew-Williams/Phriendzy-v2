@@ -7,7 +7,7 @@ import Link from 'next/link';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Play } from 'lucide-react';
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import { useUser, useFirestore } from '@/firebase';
 import { collection, query, orderBy, onSnapshot, doc, getDoc, limit, writeBatch } from 'firebase/firestore';
 import type { User as AppUser } from '@/lib/types';
@@ -21,19 +21,18 @@ function NotificationItem({ notification, currentUser }: { notification: Notific
   const { toast } = useToast();
   const [isFollowing, setIsFollowing] = useState<boolean | undefined>(undefined);
   const [isFollowLoading, setIsFollowLoading] = useState(false);
+  const firestore = useFirestore();
 
   // Check initial follow status
   useEffect(() => {
-    if (!currentUser || !notification.fromUser || notification.type !== 'follow') return;
+    if (!currentUser || !notification.fromUser || notification.type !== 'follow' || !firestore) return;
     const checkFollow = async () => {
-        const firestore = useFirestore();
-        if (!firestore) return;
         const followRef = doc(firestore, 'users', currentUser.uid, 'following', notification.fromUser.uid);
         const followSnap = await getDoc(followRef);
         setIsFollowing(followSnap.exists());
     }
     checkFollow();
-  }, [currentUser, notification]);
+  }, [currentUser, firestore, notification.fromUser, notification.type]);
   
   const handleFollowToggle = async (e: React.MouseEvent) => {
     e.preventDefault(); // Prevent link navigation
@@ -91,8 +90,8 @@ function NotificationItem({ notification, currentUser }: { notification: Notific
         </p>
       </div>
        {notification.type === 'follow' && isFollowing !== undefined && (
-            <Button size="sm" loading={isFollowLoading} onClick={handleFollowToggle}>
-                {isFollowing ? 'Following' : 'Follow Back'}
+            <Button size="sm" variant={isFollowing ? 'secondary' : 'default'} loading={isFollowLoading} onClick={handleFollowToggle}>
+                {isFollowing ? 'Following' : 'Follow'}
             </Button>
         )}
        {notification.post && (
