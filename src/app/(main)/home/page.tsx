@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { FullScreenPost } from '@/components/full-screen-post';
 import { useUser, useFirestore } from '@/firebase';
-import { collection, getDocs, limit, orderBy, query, doc, getDoc, onSnapshot, where } from 'firebase/firestore';
+import { collection, query, onSnapshot, doc, getDoc } from 'firebase/firestore';
 import type { Post, User } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 
@@ -17,63 +17,66 @@ export default function HomePage() {
 
   useEffect(() => {
     if (!firestore) {
-      // Firebase not ready
       setLoading(false);
       return;
     };
     setLoading(true);
 
-    // Fetch the 50 most recent posts. We will sort and filter on the client to avoid
-    // complex index requirements that can fail if the index is not yet deployed.
-    const postsQuery = query(
-      collection(firestore, 'posts'), 
-      limit(50)
-    );
+    // The most basic query: just get all documents in the 'posts' collection.
+    // All filtering and sorting will be done on the client. This is the most
+    // resilient approach against missing Firestore indexes.
+    const postsQuery = query(collection(firestore, 'posts'));
 
     const unsubscribe = onSnapshot(postsQuery, async (querySnapshot) => {
-      
-      const postsData = await Promise.all(querySnapshot.docs.map(async (postDoc) => {
-        const postData = postDoc.data();
-        if (!postData.authorId) return null;
+      try {
+        const postsData = await Promise.all(querySnapshot.docs.map(async (postDoc) => {
+          const postData = postDoc.data();
+          // Filter for public posts that have an author ID
+          if (!postData.authorId || postData.privacy !== 'public') {
+            return null;
+          }
 
-        const authorRef = doc(firestore, 'users', postData.authorId);
-        const authorSnap = await getDoc(authorRef);
+          const authorRef = doc(firestore, 'users', postData.authorId);
+          const authorSnap = await getDoc(authorRef);
+          
+          let author: User;
+          if (authorSnap.exists()) {
+            author = { id: authorSnap.id, uid: authorSnap.id, ...authorSnap.data() } as User;
+          } else {
+            // If author data is missing, create a fallback user to prevent the post from disappearing.
+            author = {
+              id: postData.authorId,
+              uid: postData.authorId,
+              username: 'unknown_user',
+              avatarUrl: `https://picsum.photos/seed/${postData.authorId}/100/100`,
+              bio: '',
+              followersCount: 0,
+              followingCount: 0,
+            };
+          }
+
+          return { ...postData, id: postDoc.id, author } as Post;
+        }));
         
-        let author: User;
-        if (authorSnap.exists()) {
-          author = { id: authorSnap.id, uid: authorSnap.id, ...authorSnap.data() } as User;
-        } else {
-          // If author data is missing, create a fallback user to prevent the post from disappearing.
-          author = {
-            id: postData.authorId,
-            uid: postData.authorId,
-            username: 'unknown_user',
-            avatarUrl: `https://picsum.photos/seed/${postData.authorId}/100/100`,
-            bio: '',
-            followersCount: 0,
-            followingCount: 0,
-          };
-        }
+        let allPublicPosts = postsData.filter(Boolean) as Post[];
 
-        return { ...postData, id: postDoc.id, author } as Post;
-      }));
-      
-      let allRecentPosts = postsData.filter(Boolean) as Post[];
+        // Sort by creation date on the client to show newest first.
+        allPublicPosts.sort((a, b) => {
+          const dateA = a.createdAt?.toDate ? a.createdAt.toDate().getTime() : 0;
+          const dateB = b.createdAt?.toDate ? b.createdAt.toDate().getTime() : 0;
+          return dateB - dateA;
+        });
 
-      // Manually sort by date as it's no longer in the query
-      allRecentPosts.sort((a, b) => {
-        const dateA = a.createdAt?.toDate ? a.createdAt.toDate().getTime() : 0;
-        const dateB = b.createdAt?.toDate ? b.createdAt.toDate().getTime() : 0;
-        return dateB - dateA; // Newest first
-      });
-      
-      // Filter for public posts on the client and take the first 20.
-      const publicPosts = allRecentPosts.filter(p => p.privacy === 'public').slice(0, 20);
-
-      setPosts(publicPosts);
-      setLoading(false);
+        setPosts(allPublicPosts);
+      } catch (error) {
+        console.error("Error processing posts snapshot: ", error);
+        toast({ title: 'Error', description: 'Could not process the posts from the database.', variant: 'destructive' });
+        setPosts([]);
+      } finally {
+        setLoading(false);
+      }
     }, (error) => {
-      console.error("Error fetching posts: ", error);
+      console.error("Error fetching posts snapshot: ", error);
       toast({ title: 'Error', description: 'Could not fetch posts from the database.', variant: 'destructive' });
       setPosts([]);
       setLoading(false);
@@ -140,16 +143,17 @@ export default function HomePage() {
 
   return (
     <div className="w-full h-screen snap-y snap-mandatory overflow-y-auto overflow-x-hidden md:h-full md:mx-auto md:max-w-md md:border-x no-scrollbar">
-      {posts.map((post) => (
-        <div
-          key={post.id}
-          data-post-id={post.id}
-          className="h-full w-full snap-start flex items-center justify-center relative bg-black"
-        >
-          <FullScreenPost post={post} onInteraction={handleInteraction} />
-        </div>
-      ))}
-       {posts.length === 0 && !loading && (
+      {posts.length > 0 ? (
+        posts.map((post) => (
+          <div
+            key={post.id}
+            data-post-id={post.id}
+            className="h-full w-full snap-start flex items-center justify-center relative bg-black"
+          >
+            <FullScreenPost post={post} onInteraction={handleInteraction} />
+          </div>
+        ))
+      ) : (
         <div className="h-full w-full snap-start flex items-center justify-center relative text-white">
           <div className="text-center">
             <h2 className="text-2xl font-bold">Welcome to Phriendzy!</h2>
