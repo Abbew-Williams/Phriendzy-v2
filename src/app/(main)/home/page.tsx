@@ -7,6 +7,7 @@ import { useUser, useFirestore } from '@/firebase';
 import { collection, getDocs, limit, orderBy, query, doc, getDoc, onSnapshot, where } from 'firebase/firestore';
 import type { Post, User } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
+import { posts as mockPosts } from '@/lib/data';
 
 export default function HomePage() {
   const { user } = useUser();
@@ -16,12 +17,18 @@ export default function HomePage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!firestore) return;
+    if (!firestore) {
+      // Firebase not ready, show mock posts for now
+      setPosts(mockPosts);
+      setLoading(false);
+      return;
+    };
     setLoading(true);
 
     const postsQuery = query(collection(firestore, 'posts'), where('privacy', '==', 'public'), orderBy('createdAt', 'desc'), limit(20));
 
     const unsubscribe = onSnapshot(postsQuery, async (querySnapshot) => {
+      
       const postsData = await Promise.all(querySnapshot.docs.map(async (postDoc) => {
         const postData = postDoc.data();
         if (!postData.authorId) return null;
@@ -36,11 +43,19 @@ export default function HomePage() {
       }));
       
       const finalPosts = postsData.filter(p => p) as Post[];
-      setPosts(finalPosts);
+
+      if (finalPosts.length > 0) {
+        setPosts(finalPosts);
+      } else {
+        // If there are no real posts, fall back to mock data
+        setPosts(mockPosts);
+      }
+
       setLoading(false);
     }, (error) => {
       console.error("Error fetching posts: ", error);
-      toast({ title: 'Error', description: 'Could not fetch posts. Please try again.', variant: 'destructive' });
+      toast({ title: 'Error', description: 'Could not fetch live posts. Showing sample content.', variant: 'destructive' });
+      setPosts(mockPosts);
       setLoading(false);
     });
 

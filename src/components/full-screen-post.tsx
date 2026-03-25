@@ -178,7 +178,6 @@ export function FullScreenPost({ post: initialPost, onInteraction }: FullScreenP
               @{post.author.username}
             </Link>
             <p className="text-sm mt-1 text-white/90">{post.caption}</p>
-            <p className="text-xs mt-1 text-white/50 truncate">URL: {post.mediaUrl}</p>
             <div className="flex items-center gap-2 mt-2 text-sm">
                 <Music className="w-4 h-4" />
                 <span className="truncate">Original Audio - {post.author.username}</span>
