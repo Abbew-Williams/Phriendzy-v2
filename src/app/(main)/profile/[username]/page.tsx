@@ -38,47 +38,58 @@ export default function UserProfilePage() {
       if (!firestore) return;
       setLoading(true);
 
-      // Redirect to own profile if username matches current user
-      if (currentUser && currentUser.username === username) {
-        router.replace('/profile');
-        return;
-      }
-      
-      const usersRef = collection(firestore, "users");
-      const q = query(usersRef, where("username", "==", username), limit(1));
-      const querySnapshot = await getDocs(q);
-
-      if (!querySnapshot.empty) {
-        const userDoc = querySnapshot.docs[0];
-        const userData = { ...userDoc.data(), id: userDoc.id } as AppUser;
-        setProfileUser(userData);
-
-        // Fetch user posts
-        const postsQuery = query(collection(firestore, 'posts'), where('authorId', '==', userData.uid), orderBy('createdAt', 'desc'));
-        const postsSnapshot = await getDocs(postsQuery);
-        setUserPosts(postsSnapshot.docs.map(d => ({ ...d.data(), id: d.id } as Post)));
-        
-        // Check follow status
-        if (currentUser && firestore) {
-            const followRef = doc(firestore, 'users', currentUser.uid, 'following', userData.uid);
-            const followSnap = await getDoc(followRef);
-            setIsFollowing(followSnap.exists());
+      try {
+        // Redirect to own profile if username matches current user
+        if (currentUser && currentUser.username === username) {
+          router.replace('/profile');
+          return;
         }
+        
+        const usersRef = collection(firestore, "users");
+        const q = query(usersRef, where("username", "==", username), limit(1));
+        const querySnapshot = await getDocs(q);
 
-      } else {
-        // Handle user not found
-        console.log("User not found");
+        if (!querySnapshot.empty) {
+          const userDoc = querySnapshot.docs[0];
+          const userData = { ...userDoc.data(), id: userDoc.id } as AppUser;
+          setProfileUser(userData);
+
+          // Fetch user posts
+          const postsQuery = query(collection(firestore, 'posts'), where('authorId', '==', userData.uid), orderBy('createdAt', 'desc'));
+          const postsSnapshot = await getDocs(postsQuery);
+          setUserPosts(postsSnapshot.docs.map(d => ({ ...d.data(), id: d.id } as Post)));
+          
+          // Check follow status
+          if (currentUser) {
+              const followRef = doc(firestore, 'users', currentUser.uid, 'following', userData.uid);
+              const followSnap = await getDoc(followRef);
+              setIsFollowing(followSnap.exists());
+          }
+
+        } else {
+          // Handle user not found
+          console.log("User not found");
+          setProfileUser(null);
+        }
+      } catch (error) {
+        console.error("Error fetching user profile:", error);
+        toast({
+          title: "Error loading profile",
+          description: "Could not fetch user data. Please try again.",
+          variant: "destructive",
+        });
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     };
 
     if (!authLoading) {
         fetchUserProfile();
     }
-  }, [username, firestore, authLoading, currentUser, router]);
+  }, [username, firestore, authLoading, currentUser, router, toast]);
 
   const handleFollowToggle = async () => {
-    if (!currentUser || !profileUser || !firestore) {
+    if (!currentUser || !profileUser) {
         toast({ title: "Please log in to follow users.", variant: "destructive" });
         return;
     }
@@ -86,15 +97,15 @@ export default function UserProfilePage() {
     const wasFollowing = isFollowing;
     // Optimistic update
     setIsFollowing(!wasFollowing);
-    setProfileUser(p => p ? { ...p, followersCount: p.followersCount + (!wasFollowing ? 1 : -1) } : null);
+    setProfileUser(p => p ? { ...p, followersCount: (p.followersCount || 0) + (!wasFollowing ? 1 : -1) } : null);
 
     try {
-        await toggleFollow(firestore, currentUser.uid, profileUser.uid);
+        await toggleFollow(currentUser.uid, profileUser.uid);
     } catch(e) {
         console.error(e);
         // Revert on error
         setIsFollowing(wasFollowing);
-        setProfileUser(p => p ? { ...p, followersCount: p.followersCount + (wasFollowing ? 1 : -1) } : null);
+        setProfileUser(p => p ? { ...p, followersCount: (p.followersCount || 0) + (wasFollowing ? 1 : -1) } : null);
         toast({ title: "Something went wrong", variant: "destructive" });
     } finally {
         setIsFollowLoading(false);
@@ -160,8 +171,8 @@ export default function UserProfilePage() {
             </div>
             <div className="flex justify-center sm:justify-start gap-6 mb-4">
               <button className="focus:outline-none"><span className="font-bold">{userPosts.length}</span> posts</button>
-              <button onClick={() => openFollowSheet('followers')} className="focus:outline-none hover:underline"><span className="font-bold">{profileUser.followersCount}</span> followers</button>
-              <button onClick={() => openFollowSheet('following')} className="focus:outline-none hover:underline"><span className="font-bold">{profileUser.followingCount}</span> following</button>
+              <button onClick={() => openFollowSheet('followers')} className="focus:outline-none hover:underline"><span className="font-bold">{profileUser.followersCount || 0}</span> followers</button>
+              <button onClick={() => openFollowSheet('following')} className="focus:outline-none hover:underline"><span className="font-bold">{profileUser.followingCount || 0}</span> following</button>
             </div>
             <div>
               <h2 className="font-bold">{userName}</h2>
