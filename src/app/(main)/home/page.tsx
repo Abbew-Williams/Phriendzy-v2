@@ -23,7 +23,6 @@ export default function HomePage() {
     };
     setLoading(true);
 
-    // Removed orderBy to prevent index-related errors. Sorting is now done on the client.
     const postsQuery = query(collection(firestore, 'posts'), where('privacy', '==', 'public'), limit(20));
 
     const unsubscribe = onSnapshot(postsQuery, async (querySnapshot) => {
@@ -34,9 +33,22 @@ export default function HomePage() {
 
         const authorRef = doc(firestore, 'users', postData.authorId);
         const authorSnap = await getDoc(authorRef);
-        const author = authorSnap.exists() ? { id: authorSnap.id, ...authorSnap.data() } as User : null;
-
-        if (!author) return null;
+        
+        let author: User;
+        if (authorSnap.exists()) {
+          author = { id: authorSnap.id, uid: authorSnap.id, ...authorSnap.data() } as User;
+        } else {
+          // If author data is missing, create a fallback user to prevent the post from disappearing.
+          author = {
+            id: postData.authorId,
+            uid: postData.authorId,
+            username: 'unknown_user',
+            avatarUrl: `https://picsum.photos/seed/${postData.authorId}/100/100`,
+            bio: '',
+            followersCount: 0,
+            followingCount: 0,
+          };
+        }
 
         return { ...postData, id: postDoc.id, author } as Post;
       }));
@@ -133,7 +145,7 @@ export default function HomePage() {
         <div className="h-full w-full snap-start flex items-center justify-center relative text-white">
           <div className="text-center">
             <h2 className="text-2xl font-bold">Welcome to Phriendzy!</h2>
-            <p className="text-muted-foreground mt-2">Engaging posts from the community will appear here.</p>
+            <p className="text-muted-foreground mt-2">No public posts were found. Create one to get started!</p>
           </div>
         </div>
       )}
