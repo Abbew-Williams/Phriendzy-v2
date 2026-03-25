@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { FullScreenPost } from '@/components/full-screen-post';
 import { useUser, useFirestore } from '@/firebase';
-import { collection, getDocs, limit, orderBy, query, doc, getDoc } from 'firebase/firestore';
+import { collection, getDocs, limit, orderBy, query, doc, getDoc, onSnapshot } from 'firebase/firestore';
 import type { Post, User } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 
@@ -16,40 +16,35 @@ export default function HomePage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchPosts = async () => {
-      if (!firestore) return;
-      setLoading(true);
+    if (!firestore) return;
+    setLoading(true);
 
-      try {
-        // Simplified feed: Show the latest 20 posts to all users.
-        const postsQuery = query(collection(firestore, 'posts'), orderBy('createdAt', 'desc'), limit(20));
-        const querySnapshot = await getDocs(postsQuery);
-        
-        const postsData = await Promise.all(querySnapshot.docs.map(async (postDoc) => {
-          const postData = postDoc.data();
-          if (!postData.authorId) return null;
+    const postsQuery = query(collection(firestore, 'posts'), orderBy('createdAt', 'desc'), limit(20));
 
-          const authorRef = doc(firestore, 'users', postData.authorId);
-          const authorSnap = await getDoc(authorRef);
-          const author = authorSnap.exists() ? { id: authorSnap.id, ...authorSnap.data() } as User : null;
+    const unsubscribe = onSnapshot(postsQuery, async (querySnapshot) => {
+      const postsData = await Promise.all(querySnapshot.docs.map(async (postDoc) => {
+        const postData = postDoc.data();
+        if (!postData.authorId) return null;
 
-          if (!author) return null;
+        const authorRef = doc(firestore, 'users', postData.authorId);
+        const authorSnap = await getDoc(authorRef);
+        const author = authorSnap.exists() ? { id: authorSnap.id, ...authorSnap.data() } as User : null;
 
-          return { ...postData, id: postDoc.id, author } as Post;
-        }));
-        
-        const finalPosts = postsData.filter(p => p) as Post[];
-        setPosts(finalPosts);
+        if (!author) return null;
 
-      } catch (error) {
-        console.error("Error fetching posts: ", error);
-        toast({ title: 'Error', description: 'Could not fetch posts. Please try again.', variant: 'destructive' });
-      } finally {
-        setLoading(false);
-      }
-    };
+        return { ...postData, id: postDoc.id, author } as Post;
+      }));
+      
+      const finalPosts = postsData.filter(p => p) as Post[];
+      setPosts(finalPosts);
+      setLoading(false);
+    }, (error) => {
+      console.error("Error fetching posts: ", error);
+      toast({ title: 'Error', description: 'Could not fetch posts. Please try again.', variant: 'destructive' });
+      setLoading(false);
+    });
 
-    fetchPosts();
+    return () => unsubscribe();
   }, [firestore, toast]);
 
   const handleInteraction = () => {

@@ -28,23 +28,25 @@ export default function UserProfilePage() {
   const [profileUser, setProfileUser] = useState<AppUser | null>(null);
   const [userPosts, setUserPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
+  const [postsLoading, setPostsLoading] = useState(true);
   const [isFollowing, setIsFollowing] = useState(false);
   const [isFollowLoading, setIsFollowLoading] = useState(false);
 
   const [sheetState, setSheetState] = useState<{ open: boolean, type: 'followers' | 'following' }>({ open: false, type: 'followers' });
 
   useEffect(() => {
-    const fetchUserProfile = async () => {
-      if (!firestore) return;
-      setLoading(true);
+    if (authLoading || !firestore) return;
 
+    if (currentUser && currentUser.username === username) {
+      router.replace('/profile');
+      return;
+    }
+
+    setLoading(true);
+    let unsubscribePosts = () => {};
+
+    const fetchUserProfileAndPosts = async () => {
       try {
-        // Redirect to own profile if username matches current user
-        if (currentUser && currentUser.username === username) {
-          router.replace('/profile');
-          return;
-        }
-        
         const usersRef = collection(firestore, "users");
         const q = query(usersRef, where("username", "==", username), limit(1));
         const querySnapshot = await getDocs(q);
@@ -54,15 +56,17 @@ export default function UserProfilePage() {
           const userData = { ...userDoc.data(), id: userDoc.id } as AppUser;
           setProfileUser(userData);
 
-          // Fetch user posts
+          // Set up listener for posts
           const postsQuery = query(collection(firestore, 'posts'), where('authorId', '==', userData.uid), orderBy('createdAt', 'desc'));
-          const postsSnapshot = await getDocs(postsQuery);
-          setUserPosts(postsSnapshot.docs.map(d => ({ ...d.data(), id: d.id } as Post)));
+          unsubscribePosts = onSnapshot(postsQuery, (postsSnapshot) => {
+            setUserPosts(postsSnapshot.docs.map(d => ({ ...d.data(), id: d.id } as Post)));
+            setPostsLoading(false);
+          });
 
         } else {
-          // Handle user not found
           console.log("User not found");
           setProfileUser(null);
+          setPostsLoading(false);
         }
       } catch (error) {
         console.error("Error fetching user profile:", error);
@@ -71,14 +75,15 @@ export default function UserProfilePage() {
           description: "Could not fetch user data. Please try again.",
           variant: "destructive",
         });
+        setPostsLoading(false);
       } finally {
         setLoading(false);
       }
     };
 
-    if (!authLoading) {
-        fetchUserProfile();
-    }
+    fetchUserProfileAndPosts();
+    
+    return () => unsubscribePosts();
   }, [username, firestore, authLoading, currentUser, router, toast]);
 
   // Real-time follow status listener
@@ -201,25 +206,30 @@ export default function UserProfilePage() {
             <TabsTrigger value="liked">Liked</TabsTrigger>
           </TabsList>
           <TabsContent value="posts">
-            <div className="grid grid-cols-3 gap-1 sm:gap-4 mt-6">
-              {userPosts.map(post => (
-                <Link href={`/post/${post.id}`} key={post.id} className="relative aspect-square">
-                  <Image
-                    src={post.mediaUrl}
-                    alt={post.caption || 'User post'}
-                    fill
-                    className="object-cover rounded-md"
-                    sizes="(max-width: 768px) 33vw, 33vw"
-                  />
-                </Link>
-              ))}
-            </div>
-            {userPosts.length === 0 && (
-              <div className="flex flex-col items-center justify-center h-64 border-2 border-dashed rounded-lg mt-6">
-                <h3 className="text-xl font-semibold">No posts yet</h3>
-                <p className="text-muted-foreground mt-2">This user hasn't shared any posts.</p>
-              </div>
-            )}
+             {postsLoading ? (
+                  <div className="grid grid-cols-3 gap-1 sm:gap-4 mt-6">
+                      {[...Array(3)].map((_, i) => <Skeleton key={i} className="aspect-square" />)}
+                  </div>
+              ) : userPosts.length > 0 ? (
+                <div className="grid grid-cols-3 gap-1 sm:gap-4 mt-6">
+                  {userPosts.map(post => (
+                    <Link href={`/post/${post.id}`} key={post.id} className="relative aspect-square">
+                      <Image
+                        src={post.mediaUrl}
+                        alt={post.caption || 'User post'}
+                        fill
+                        className="object-cover rounded-md"
+                        sizes="(max-width: 768px) 33vw, 33vw"
+                      />
+                    </Link>
+                  ))}
+                </div>
+              ) : (
+                <div className="flex flex-col items-center justify-center h-64 border-2 border-dashed rounded-lg mt-6">
+                    <h3 className="text-xl font-semibold">No posts yet</h3>
+                    <p className="text-muted-foreground mt-2">This user hasn't shared any posts.</p>
+                </div>
+              )}
           </TabsContent>
           <TabsContent value="liked">
               <div className="flex flex-col items-center justify-center h-64 border-2 border-dashed rounded-lg mt-6">

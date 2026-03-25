@@ -10,7 +10,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import Link from "next/link";
-import { collection, query, where, getDocs, orderBy } from 'firebase/firestore';
+import { collection, query, where, getDocs, orderBy, onSnapshot } from 'firebase/firestore';
 import type { Post } from '@/lib/types';
 import { FollowSheet } from "@/components/follow-sheet";
 
@@ -32,26 +32,24 @@ export default function ProfilePage() {
   }, [loading, authUser, router]);
   
   useEffect(() => {
-    const fetchUserPosts = async () => {
-      if (!appUser || !firestore) return;
+    if (!appUser || !firestore) return;
 
-      setPostsLoading(true);
-      try {
-        const postsQuery = query(
-          collection(firestore, 'posts'),
-          where('authorId', '==', appUser.uid),
-          orderBy('createdAt', 'desc')
-        );
-        const querySnapshot = await getDocs(postsQuery);
+    setPostsLoading(true);
+    const postsQuery = query(
+      collection(firestore, 'posts'),
+      where('authorId', '==', appUser.uid),
+      orderBy('createdAt', 'desc')
+    );
+    
+    const unsubscribe = onSnapshot(postsQuery, (querySnapshot) => {
         setUserPosts(querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Post)));
-      } catch (error) {
-        console.error("Error fetching user posts:", error);
-      } finally {
         setPostsLoading(false);
-      }
-    };
+    }, (error) => {
+        console.error("Error fetching user posts:", error);
+        setPostsLoading(false);
+    });
 
-    fetchUserPosts();
+    return () => unsubscribe();
   }, [appUser, firestore]);
   
   const openFollowSheet = (type: 'followers' | 'following') => {
