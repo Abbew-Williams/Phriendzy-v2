@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Play } from 'lucide-react';
 import { useState, useEffect, useMemo } from 'react';
 import { useUser, useFirestore } from '@/firebase';
-import { collection, query, orderBy, onSnapshot, doc, getDoc, limit } from 'firebase/firestore';
+import { collection, query, orderBy, onSnapshot, doc, getDoc, limit, writeBatch } from 'firebase/firestore';
 import type { User as AppUser } from '@/lib/types';
 import { toggleFollow } from '@/firebase/firestore/interactions';
 import { useToast } from '@/hooks/use-toast';
@@ -139,6 +139,20 @@ export default function NotificationsPage() {
     );
 
     const unsubscribe = onSnapshot(q, async (snapshot) => {
+        // Mark all fetched notifications as read
+        const unreadDocs = snapshot.docs.filter(doc => !doc.data().read);
+        if (unreadDocs.length > 0) {
+            const batch = writeBatch(firestore);
+            unreadDocs.forEach(doc => {
+                batch.update(doc.ref, { read: true });
+            });
+            // Don't wait for this to complete to show the UI,
+            // let it run in the background.
+            batch.commit().catch(err => {
+                console.error("Failed to mark notifications as read:", err);
+            });
+        }
+
         const notifsData = await Promise.all(snapshot.docs.map(async (docSnap) => {
             const data = docSnap.data();
             if (data.fromUserId === appUser.uid) return null;
