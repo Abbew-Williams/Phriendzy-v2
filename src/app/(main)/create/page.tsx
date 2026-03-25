@@ -19,7 +19,6 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
 import { Progress } from '@/components/ui/progress';
-import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
 
 const MAX_CAPTION_LENGTH = 10000;
 const MAX_HASHTAGS = 20;
@@ -28,8 +27,8 @@ type CreateStep = 'select' | 'edit' | 'details';
 
 export default function CreatePage() {
   const [step, setStep] = useState<CreateStep>('select');
-  const [files, setFiles] = useState<File[]>([]);
-  const [previewUrls, setPreviewUrls] = useState<string[]>([]);
+  const [file, setFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [caption, setCaption] = useState('');
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
@@ -55,29 +54,20 @@ export default function CreatePage() {
   };
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const selectedFiles = event.target.files;
-    if (selectedFiles && selectedFiles.length > 0) {
-      const newFiles = Array.from(selectedFiles);
-
-      const oversizedFile = newFiles.find(f => f.size > 50 * 1024 * 1024);
-      if (oversizedFile) {
-        toast({ title: 'File too large', description: `${oversizedFile.name} is over the 50MB limit.`, variant: 'destructive' });
+    const selectedFile = event.target.files?.[0];
+    if (selectedFile) {
+      if (selectedFile.size > 50 * 1024 * 1024) {
+        toast({ title: 'File too large', description: `${selectedFile.name} is over the 50MB limit.`, variant: 'destructive' });
         return;
       }
-
-      setFiles(newFiles);
-
-      Promise.all(newFiles.map(file => {
-        return new Promise<string>((resolve, reject) => {
-          const reader = new FileReader();
-          reader.onloadend = () => resolve(reader.result as string);
-          reader.onerror = reject;
-          reader.readAsDataURL(file);
-        });
-      })).then(urls => {
-        setPreviewUrls(urls);
+      
+      setFile(selectedFile);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setPreviewUrl(reader.result as string);
         setStep('edit');
-      });
+      };
+      reader.readAsDataURL(selectedFile);
     }
   };
   
@@ -127,8 +117,8 @@ export default function CreatePage() {
 
 
   const discardPost = () => {
-    setFiles([]);
-    setPreviewUrls([]);
+    setFile(null);
+    setPreviewUrl(null);
     setCaption('');
     setPrivacy('public');
     setAllowComments(true);
@@ -137,8 +127,8 @@ export default function CreatePage() {
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
-    if (files.length === 0) {
-      toast({ title: 'No files selected', description: 'Please select an image or video.', variant: 'destructive' });
+    if (!file) {
+      toast({ title: 'No file selected', description: 'Please select an image or video.', variant: 'destructive' });
       return;
     }
     if (!user) {
@@ -152,12 +142,10 @@ export default function CreatePage() {
 
     setIsUploading(true);
     setUploadProgress(0);
-    
-    const fileToUpload = files[0];
 
     try {
-      const mediaUrl = await uploadFile(fileToUpload, setUploadProgress);
-      const mediaType = fileToUpload.type.startsWith('image/') ? 'image' : 'video';
+      const mediaUrl = await uploadFile(file, setUploadProgress);
+      const mediaType = file.type.startsWith('image/') ? 'image' : 'video';
 
       await createPost({
         authorId: user.uid,
@@ -195,10 +183,10 @@ export default function CreatePage() {
              <div className="relative flex flex-col items-center justify-center w-full h-80 border-2 border-dashed rounded-lg cursor-pointer hover:bg-muted">
                 <label htmlFor="file-upload" className="flex flex-col items-center justify-center w-full h-full cursor-pointer">
                     <ImagePlus className="w-12 h-12 text-muted-foreground mb-4" />
-                    <h2 className="text-xl font-bold mb-1">Select photos or videos</h2>
+                    <h2 className="text-xl font-bold mb-1">Select photo or video</h2>
                     <p className="text-sm text-muted-foreground">or drag and drop</p>
                 </label>
-                <input id="file-upload" type="file" className="hidden" accept="image/*,video/*" onChange={handleFileChange} multiple />
+                <input id="file-upload" type="file" className="hidden" accept="image/*,video/*" onChange={handleFileChange} />
              </div>
           </CardContent>
         </Card>
@@ -220,25 +208,15 @@ export default function CreatePage() {
                 </CardHeader>
                 <CardContent>
                     <div className="grid grid-cols-1 md:grid-cols-[1fr_200px] min-h-[60vh] gap-4">
-                        <Carousel className="w-full h-full rounded-md overflow-hidden" opts={{ loop: true }}>
-                          <CarouselContent className="h-full">
-                            {previewUrls.map((url, index) => (
-                              <CarouselItem key={index} className="relative bg-black">
-                                {files[index]?.type.startsWith('image/') ? (
-                                  <Image src={url} alt={`Preview ${index + 1}`} fill style={{objectFit: "contain"}} />
+                        <div className="w-full h-full rounded-md overflow-hidden relative bg-black">
+                            {previewUrl && file && (
+                                file.type.startsWith('image/') ? (
+                                  <Image src={previewUrl} alt="Preview" fill style={{objectFit: "contain"}} />
                                 ) : (
-                                  <video src={url} controls autoPlay loop muted className="w-full h-full object-contain" />
-                                )}
-                              </CarouselItem>
-                            ))}
-                          </CarouselContent>
-                          {previewUrls.length > 1 && (
-                            <>
-                              <CarouselPrevious className="absolute left-4" />
-                              <CarouselNext className="absolute right-4" />
-                            </>
-                          )}
-                        </Carousel>
+                                  <video src={previewUrl} controls autoPlay loop muted className="w-full h-full object-contain" />
+                                )
+                            )}
+                        </div>
                         <div className="flex flex-col border rounded-md bg-background p-4 space-y-2">
                             <p className="font-semibold text-muted-foreground">Editing Tools</p>
                             <Button variant="ghost" className="justify-start" onClick={() => showComingSoonToast('Trim')}>
@@ -277,11 +255,11 @@ export default function CreatePage() {
             <div className="grid grid-cols-1 md:grid-cols-2 min-h-[60vh]">
               {/* Media Preview */}
               <div className="relative w-full bg-black flex items-center justify-center rounded-md overflow-hidden">
-                {previewUrls.length > 0 && files.length > 0 && (
-                    files[0].type.startsWith('image/') ? (
-                    <Image src={previewUrls[0]} alt="Preview" fill objectFit="contain" />
+                {previewUrl && file && (
+                    file.type.startsWith('image/') ? (
+                    <Image src={previewUrl} alt="Preview" fill objectFit="contain" />
                     ) : (
-                    <video src={previewUrls[0]} controls autoPlay loop muted className="max-h-[80vh] w-auto" />
+                    <video src={previewUrl} controls autoPlay loop muted className="max-h-[80vh] w-auto" />
                     )
                 )}
               </div>
