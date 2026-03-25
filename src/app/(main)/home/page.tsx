@@ -7,7 +7,6 @@ import { useUser, useFirestore } from '@/firebase';
 import { collection, getDocs, limit, orderBy, query, doc, getDoc, onSnapshot, where } from 'firebase/firestore';
 import type { Post, User } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
-import { posts as mockPosts } from '@/lib/data';
 
 export default function HomePage() {
   const { user } = useUser();
@@ -18,8 +17,7 @@ export default function HomePage() {
 
   useEffect(() => {
     if (!firestore) {
-      // Firebase not ready, show mock posts for now
-      setPosts(mockPosts);
+      // Firebase not ready
       setLoading(false);
       return;
     };
@@ -44,18 +42,12 @@ export default function HomePage() {
       
       const finalPosts = postsData.filter(p => p) as Post[];
 
-      if (finalPosts.length > 0) {
-        setPosts(finalPosts);
-      } else {
-        // If there are no real posts, fall back to mock data
-        setPosts(mockPosts);
-      }
-
+      setPosts(finalPosts);
       setLoading(false);
     }, (error) => {
       console.error("Error fetching posts: ", error);
-      toast({ title: 'Error', description: 'Could not fetch live posts. Showing sample content.', variant: 'destructive' });
-      setPosts(mockPosts);
+      toast({ title: 'Error', description: 'Could not fetch posts from the database.', variant: 'destructive' });
+      setPosts([]);
       setLoading(false);
     });
 
