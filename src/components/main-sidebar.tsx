@@ -25,6 +25,7 @@ import {
   SidebarMenuButton,
   SidebarFooter,
   useSidebar,
+  SidebarMenuBadge,
 } from '@/components/ui/sidebar';
 import { Logo, LogoIcon } from '@/components/logo';
 import { UserAvatar } from '@/components/user-avatar';
@@ -40,15 +41,7 @@ import {
   DropdownMenuTrigger,
 } from './ui/dropdown-menu';
 import { Skeleton } from './ui/skeleton';
-
-const menuItems = [
-  { href: '/home', label: 'Home', icon: Home, tooltip: 'Home' },
-  { href: '/explore', label: 'Explore', icon: Compass, tooltip: 'Explore' },
-  { href: '/create', label: 'Create', icon: PlusSquare, tooltip: 'Create' },
-  { href: '/messages', label: 'Messages', icon: MessageCircle, tooltip: 'Messages' },
-  { href: '/notifications', label: 'Notifications', icon: Bell, tooltip: 'Notifications' },
-  { href: '/profile', label: 'Profile', icon: User, tooltip: 'Profile' },
-];
+import { useUnreadCounts } from '@/hooks/use-unread-counts';
 
 const mockUser = {
     id: 'temp-user',
@@ -67,9 +60,19 @@ export function MainSidebar() {
   const router = useRouter();
   const { state } = useSidebar();
   const { appUser, loading } = useUser();
+  const { notificationCount, messageCount } = useUnreadCounts();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   const isCollapsed = state === 'collapsed';
+
+  const menuItems = [
+    { href: '/home', label: 'Home', icon: Home, tooltip: 'Home' },
+    { href: '/explore', label: 'Explore', icon: Compass, tooltip: 'Explore' },
+    { href: '/create', label: 'Create', icon: PlusSquare, tooltip: 'Create' },
+    { href: '/messages', label: 'Messages', icon: MessageCircle, tooltip: 'Messages', count: messageCount },
+    { href: '/notifications', label: 'Notifications', icon: Bell, tooltip: 'Notifications', count: notificationCount },
+    { href: '/profile', label: 'Profile', icon: User, tooltip: 'Profile' },
+  ];
   
   const handleLogout = async () => {
     setIsLoggingOut(true);
@@ -89,7 +92,7 @@ export function MainSidebar() {
       </SidebarHeader>
       <SidebarContent className="p-2">
         <SidebarMenu>
-          {menuItems.map(({ href, label, icon: Icon, tooltip }) => (
+          {menuItems.map(({ href, label, icon: Icon, tooltip, count }) => (
             <SidebarMenuItem key={href}>
                <SidebarMenuButton
                 asChild
@@ -99,6 +102,7 @@ export function MainSidebar() {
                 <Link href={href}>
                   <Icon />
                   <span>{label}</span>
+                  {appUser && typeof count === 'number' && count > 0 && <SidebarMenuBadge>{count > 9 ? '9+' : count}</SidebarMenuBadge>}
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>

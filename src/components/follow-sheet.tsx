@@ -31,7 +31,7 @@ const useFollowingList = (currentUserId?: string) => {
     return followingIds;
 };
 
-const FollowListItem = ({ user, currentUserId, isFollowing, onToggleFollow }: { user: User, currentUserId?: string, isFollowing: boolean, onToggleFollow: (targetUserId: string) => void }) => {
+const FollowListItem = ({ user, currentUserId, isFollowing, onToggleFollow, onNavigate }: { user: User, currentUserId?: string, isFollowing: boolean, onToggleFollow: (targetUserId: string) => void, onNavigate: () => void }) => {
     const [isLoading, setIsLoading] = useState(false);
     
     const handleFollow = async (e: React.MouseEvent) => {
@@ -43,20 +43,18 @@ const FollowListItem = ({ user, currentUserId, isFollowing, onToggleFollow }: { 
     }
     
     return (
-        <div key={user.id} className="flex items-center gap-3">
-            <Link href={`/profile/${user.username}`} className="flex items-center gap-3 flex-1">
-                <UserAvatar user={user} />
-                <div>
-                    <p className="font-semibold">{user.username}</p>
-                    <p className="text-sm text-muted-foreground">{user.name}</p>
-                </div>
-            </Link>
+        <Link href={`/profile/${user.username}`} onClick={onNavigate} className="flex items-center gap-3 p-2 -mx-2 rounded-lg hover:bg-muted">
+            <UserAvatar user={user} />
+            <div className="flex-1">
+                <p className="font-semibold">{user.username}</p>
+                <p className="text-sm text-muted-foreground">{user.name}</p>
+            </div>
             {currentUserId && currentUserId !== user.uid && (
                 <Button size="sm" variant={isFollowing ? 'secondary' : 'default'} onClick={handleFollow} loading={isLoading}>
                     {isFollowing ? 'Following' : 'Follow'}
                 </Button>
             )}
-        </div>
+        </Link>
     )
 }
 
@@ -123,6 +121,7 @@ export const FollowSheet = ({ open, onOpenChange, userId, type }: { open: boolea
                                 currentUserId={appUser?.uid}
                                 isFollowing={currentUserFollowingIds.has(user.uid)}
                                 onToggleFollow={handleToggleFollow}
+                                onNavigate={() => onOpenChange(false)}
                             />
                         ))}
                     </div>
