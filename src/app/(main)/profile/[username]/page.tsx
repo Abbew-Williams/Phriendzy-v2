@@ -10,7 +10,7 @@ import { useRouter, useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import Link from "next/link";
-import { collection, query, where, getDocs, doc, getDoc, orderBy, limit } from 'firebase/firestore';
+import { collection, query, where, getDocs, doc, getDoc, orderBy, limit, onSnapshot } from 'firebase/firestore';
 import type { User as AppUser, Post } from "@/lib/types";
 import { toggleFollow } from "@/firebase/firestore/interactions";
 import { useToast } from "@/hooks/use-toast";
@@ -58,13 +58,6 @@ export default function UserProfilePage() {
           const postsQuery = query(collection(firestore, 'posts'), where('authorId', '==', userData.uid), orderBy('createdAt', 'desc'));
           const postsSnapshot = await getDocs(postsQuery);
           setUserPosts(postsSnapshot.docs.map(d => ({ ...d.data(), id: d.id } as Post)));
-          
-          // Check follow status
-          if (currentUser) {
-              const followRef = doc(firestore, 'users', currentUser.uid, 'following', userData.uid);
-              const followSnap = await getDoc(followRef);
-              setIsFollowing(followSnap.exists());
-          }
 
         } else {
           // Handle user not found
@@ -88,6 +81,18 @@ export default function UserProfilePage() {
     }
   }, [username, firestore, authLoading, currentUser, router, toast]);
 
+  // Real-time follow status listener
+  useEffect(() => {
+    if (!currentUser || !profileUser?.uid || !firestore) {
+      return;
+    }
+    const followRef = doc(firestore, 'users', currentUser.uid, 'following', profileUser.uid);
+    const unsubscribe = onSnapshot(followRef, (doc) => {
+      setIsFollowing(doc.exists());
+    });
+    return () => unsubscribe();
+  }, [currentUser, profileUser, firestore]);
+
   const handleFollowToggle = async () => {
     if (!currentUser || !profileUser) {
         toast({ title: "Please log in to follow users.", variant: "destructive" });
@@ -95,17 +100,26 @@ export default function UserProfilePage() {
     }
     setIsFollowLoading(true);
     const wasFollowing = isFollowing;
-    // Optimistic update
-    setIsFollowing(!wasFollowing);
-    setProfileUser(p => p ? { ...p, followersCount: (p.followersCount || 0) + (!wasFollowing ? 1 : -1) } : null);
+    // Optimistic update for the follower count on the profile user
+    setProfileUser(p => {
+        if (!p) return null;
+        const currentFollowers = p.followersCount || 0;
+        return { ...p, followersCount: currentFollowers + (wasFollowing ? -1 : 1) };
+    });
+
 
     try {
         await toggleFollow(currentUser.uid, profileUser.uid);
+        // No need to setIsFollowing here, the snapshot listener will handle it.
     } catch(e) {
         console.error(e);
         // Revert on error
-        setIsFollowing(wasFollowing);
-        setProfileUser(p => p ? { ...p, followersCount: (p.followersCount || 0) + (wasFollowing ? 1 : -1) } : null);
+         setProfileUser(p => {
+            if (!p) return null;
+            const currentFollowers = p.followersCount || 0;
+            // This reverts the optimistic update
+            return { ...p, followersCount: currentFollowers + (wasFollowing ? 1 : -1) };
+        });
         toast({ title: "Something went wrong", variant: "destructive" });
     } finally {
         setIsFollowLoading(false);

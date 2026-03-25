@@ -54,6 +54,7 @@ export default function ChatPage() {
 
   const otherUser = chat?.participants.find(p => p.uid !== appUser?.uid);
 
+  // Effect to fetch chat and message data
   useEffect(() => {
     if (!firestore || !chatId || !appUser) return;
 
@@ -68,14 +69,6 @@ export default function ChatPage() {
             router.push('/messages');
             return;
         }
-        
-        // Check if the last message is unread and mark it as read
-        if (data.lastMessageAuthorId && data.lastMessageAuthorId !== appUser.uid && !data.readBy?.includes(appUser.uid)) {
-            await updateDoc(chatRef, {
-                readBy: arrayUnion(appUser.uid)
-            });
-        }
-
 
         const participantsData = await Promise.all(
           data.participants.map(async (userId: string) => {
@@ -110,6 +103,22 @@ export default function ChatPage() {
     };
   }, [firestore, chatId, appUser, router]);
   
+  // Effect to mark chat as read
+  useEffect(() => {
+    if (firestore && chatId && appUser && chat) {
+      // If the last message is from the other user and we haven't read it yet
+      if (chat.lastMessageAuthorId && chat.lastMessageAuthorId !== appUser.uid && !chat.readBy?.includes(appUser.uid)) {
+        const chatRef = doc(firestore, 'chats', chatId);
+        updateDoc(chatRef, {
+          readBy: arrayUnion(appUser.uid)
+        }).catch(err => {
+          // Log error but don't bother the user.
+          console.error("Failed to mark chat as read:", err);
+        });
+      }
+    }
+  }, [chat, firestore, chatId, appUser]);
+
   useEffect(() => {
       messagesEndRef.current?.scrollIntoView();
   }, [messages]);
