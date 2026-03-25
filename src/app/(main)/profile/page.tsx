@@ -10,8 +10,8 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import Link from "next/link";
-import { collection, query, where, getDocs, orderBy, onSnapshot } from 'firebase/firestore';
-import type { Post } from '@/lib/types';
+import { collection, query, where, orderBy, onSnapshot, doc, getDoc } from 'firebase/firestore';
+import type { User as AppUser, Post } from '@/lib/types';
 import { FollowSheet } from "@/components/follow-sheet";
 
 
@@ -22,6 +22,8 @@ export default function ProfilePage() {
 
   const [userPosts, setUserPosts] = useState<Post[]>([]);
   const [postsLoading, setPostsLoading] = useState(true);
+  const [savedPosts, setSavedPosts] = useState<Post[]>([]);
+  const [savedPostsLoading, setSavedPostsLoading] = useState(true);
 
   const [sheetState, setSheetState] = useState<{ open: boolean, type: 'followers' | 'following' }>({ open: false, type: 'followers' });
 
@@ -38,7 +40,7 @@ export default function ProfilePage() {
     const postsQuery = query(
       collection(firestore, 'posts'),
       where('authorId', '==', appUser.uid),
-      // where('privacy', '==', 'public'), // Only showing public posts for now to prevent security rule errors
+      where('privacy', '==', 'public'), // Only showing public posts for now
       orderBy('createdAt', 'desc')
     );
     
@@ -47,18 +49,45 @@ export default function ProfilePage() {
         setPostsLoading(false);
     }, (error) => {
         console.error("Error fetching user posts:", error);
-        // Fallback to only public posts if the general query fails due to security rules
-        const publicOnlyQuery = query(
-            collection(firestore, 'posts'),
-            where('authorId', '==', appUser.uid),
-            where('privacy', '==', 'public'),
-            orderBy('createdAt', 'desc')
-        );
-        const unsubPublic = onSnapshot(publicOnlyQuery, (snapshot) => {
-            setUserPosts(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Post)));
-            setPostsLoading(false);
+        setPostsLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, [appUser, firestore]);
+
+  // Fetch Saved Posts
+  useEffect(() => {
+    if (!appUser || !firestore) return;
+
+    setSavedPostsLoading(true);
+    const savedPostsQuery = query(collection(firestore, 'users', appUser.uid, 'saved'), orderBy('createdAt', 'desc'));
+
+    const unsubscribe = onSnapshot(savedPostsQuery, async (snapshot) => {
+        const postPromises = snapshot.docs.map(async (savedDoc) => {
+            const postId = savedDoc.id;
+            const postRef = doc(firestore, 'posts', postId);
+            const postSnap = await getDoc(postRef);
+
+            if (!postSnap.exists()) return null;
+
+            const postData = postSnap.data();
+            if (!postData.authorId) return null;
+
+            const authorRef = doc(firestore, 'users', postData.authorId);
+            const authorSnap = await getDoc(authorRef);
+            const author = authorSnap.exists() ? { id: authorSnap.id, uid: authorSnap.id, ...authorSnap.data() } as AppUser : null;
+
+            if (!author) return null;
+
+            return { ...postData, id: postSnap.id, author } as Post;
         });
-        return unsubPublic;
+
+        const resolvedPosts = (await Promise.all(postPromises)).filter(p => p) as Post[];
+        setSavedPosts(resolvedPosts);
+        setSavedPostsLoading(false);
+    }, (error) => {
+        console.error("Error fetching saved posts:", error);
+        setSavedPostsLoading(false);
     });
 
     return () => unsubscribe();
@@ -161,10 +190,30 @@ export default function ProfilePage() {
               )}
           </TabsContent>
           <TabsContent value="saved">
-              <div className="flex flex-col items-center justify-center h-64 border-2 border-dashed rounded-lg mt-6">
-                <h3 className="text-xl font-semibold">No saved posts</h3>
-                <p className="text-muted-foreground mt-2">Save posts you want to see again.</p>
-              </div>
+              {savedPostsLoading ? (
+                  <div className="grid grid-cols-3 gap-1 sm:gap-4 mt-6">
+                      {[...Array(3)].map((_, i) => <Skeleton key={i} className="aspect-square" />)}
+                  </div>
+              ) : savedPosts.length > 0 ? (
+                  <div className="grid grid-cols-3 gap-1 sm:gap-4 mt-6">
+                      {savedPosts.map(post => (
+                      <Link href={`/post/${post.id}`} key={post.id} className="relative aspect-square">
+                          <Image
+                          src={post.mediaUrl}
+                          alt={post.caption || 'Saved post'}
+                          fill
+                          className="object-cover rounded-md"
+                          sizes="(max-width: 768px) 33vw, 33vw"
+                          />
+                      </Link>
+                      ))}
+                  </div>
+              ) : (
+                  <div className="flex flex-col items-center justify-center h-64 border-2 border-dashed rounded-lg mt-6">
+                    <h3 className="text-xl font-semibold">No saved posts</h3>
+                    <p className="text-muted-foreground mt-2">Save posts you want to see again.</p>
+                  </div>
+              )}
           </TabsContent>
         </Tabs>
       </div>
