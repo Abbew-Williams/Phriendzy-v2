@@ -44,6 +44,7 @@ export const getOrCreateChat = async (
       updatedAt: serverTimestamp(),
       lastMessage: '',
       createdAt: serverTimestamp(),
+      readBy: [],
     });
     return newChatRef.id;
   }

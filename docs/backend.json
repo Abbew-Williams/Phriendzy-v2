@@ -87,7 +87,8 @@
         "participants": { "type": "array", "items": { "type": "string" } },
         "lastMessage": { "type": "string" },
         "updatedAt": { "type": "string", "format": "date-time" },
-        "lastMessageAuthorId": { "type": "string", "description": "UID of the user who sent the last message." }
+        "lastMessageAuthorId": { "type": "string", "description": "UID of the user who sent the last message." },
+        "readBy": { "type": "array", "items": { "type": "string" }, "description": "List of participant UIDs who have read the last message." }
       },
       "required": ["participants", "updatedAt"]
     },

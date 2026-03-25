@@ -100,14 +100,17 @@ export default function MessagesPage() {
     const [loadingStatuses, setLoadingStatuses] = useState(true);
 
     useEffect(() => {
-        if (!firestore || !appUser) return;
-        setLoadingStatuses(true);
-        const controller = new AbortController();
-        const { signal } = controller;
+        if (!firestore || !appUser) {
+            setLoadingStatuses(false);
+            return;
+        }
 
+        setLoadingStatuses(true);
+        
+        // --- Fetch followed users with statuses (one-time fetch on load) ---
         const fetchFollowedStatuses = async () => {
             const followingRef = collection(firestore, 'users', appUser.uid, 'following');
-            const followingSnapshot = await getDocs(followingRef, { signal });
+            const followingSnapshot = await getDocs(followingRef);
             const followingIds = followingSnapshot.docs.map(doc => doc.id);
 
             const usersWithStatus: User[] = [];
@@ -117,40 +120,37 @@ export default function MessagesPage() {
                     where('expiresAt', '>', new Date()),
                     limit(1)
                 );
-                const statusSnapshot = await getDocs(statusQuery, { signal });
+                const statusSnapshot = await getDocs(statusQuery);
                 if (!statusSnapshot.empty) {
                     const userRef = doc(firestore, 'users', id);
-                    const userSnap = await getDoc(userRef, { signal });
+                    const userSnap = await getDoc(userRef);
                     if (userSnap.exists()) {
                         usersWithStatus.push({ id: userSnap.id, ...userSnap.data() } as User);
                     }
                 }
             });
             await Promise.all(userPromises);
-            if (!signal.aborted) {
-                setFollowedUsersWithStatus(usersWithStatus);
-            }
+            setFollowedUsersWithStatus(usersWithStatus);
         };
 
-        const checkOwnStatus = async () => {
-            const ownStatusQuery = query(
-                collection(firestore, 'users', appUser.uid, 'statuses'),
-                where('expiresAt', '>', new Date()),
-                limit(1)
-            );
-            const ownStatusSnapshot = await getDocs(ownStatusQuery, { signal });
-            if (!signal.aborted) {
-                setHasOwnStatus(!ownStatusSnapshot.empty);
-            }
-        };
+        fetchFollowedStatuses();
 
-        Promise.all([fetchFollowedStatuses(), checkOwnStatus()]).finally(() => {
-            if (!signal.aborted) {
-                setLoadingStatuses(false);
-            }
+        // --- Listen for own status in real-time ---
+        const ownStatusQuery = query(
+            collection(firestore, 'users', appUser.uid, 'statuses'),
+            where('expiresAt', '>', new Date())
+        );
+        const unsubscribeOwnStatus = onSnapshot(ownStatusQuery, (snapshot) => {
+            setHasOwnStatus(!snapshot.empty);
+            setLoadingStatuses(false); // Set loading to false once we have the status info
+        }, (error) => {
+            console.error("Error checking own status:", error);
+            setLoadingStatuses(false);
         });
 
-        return () => controller.abort();
+        return () => {
+            unsubscribeOwnStatus();
+        };
     }, [firestore, appUser]);
 
 
@@ -177,7 +177,7 @@ export default function MessagesPage() {
                     })
                 );
 
-                const isUnread = data.lastMessageAuthorId && data.lastMessageAuthorId !== appUser.uid && data.lastMessage;
+                const isUnread = data.lastMessageAuthorId && data.lastMessageAuthorId !== appUser.uid && !data.readBy?.includes(appUser.uid);
 
                 return {
                     id: chatDoc.id,

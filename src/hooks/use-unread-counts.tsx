@@ -47,8 +47,8 @@ export function useUnreadCounts() {
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const unreadChats = snapshot.docs.filter(doc => {
         const data = doc.data();
-        // A chat is unread if there is a last message and the author is not the current user.
-        return data.lastMessage && data.lastMessageAuthorId && data.lastMessageAuthorId !== appUser.uid;
+        // A chat is unread if there's a last message from someone else AND the current user is not in the readBy array.
+        return data.lastMessageAuthorId && data.lastMessageAuthorId !== appUser.uid && !data.readBy?.includes(appUser.uid);
       });
       setMessageCount(unreadChats.length);
     }, (error) => {

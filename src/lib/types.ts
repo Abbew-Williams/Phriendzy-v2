@@ -85,6 +85,7 @@ export type Chat = {
     updatedAt: any;
     createdAt: any;
     lastMessageAuthorId?: string;
+    readBy?: string[];
 };
 
 export type Message = {

@@ -15,6 +15,7 @@ import {
   addDoc,
   serverTimestamp,
   updateDoc,
+  arrayUnion,
 } from 'firebase/firestore';
 import { ArrowLeft, Send } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -67,6 +68,14 @@ export default function ChatPage() {
             router.push('/messages');
             return;
         }
+        
+        // Check if the last message is unread and mark it as read
+        if (data.lastMessageAuthorId && data.lastMessageAuthorId !== appUser.uid && !data.readBy?.includes(appUser.uid)) {
+            await updateDoc(chatRef, {
+                readBy: arrayUnion(appUser.uid)
+            });
+        }
+
 
         const participantsData = await Promise.all(
           data.participants.map(async (userId: string) => {
@@ -126,6 +135,7 @@ export default function ChatPage() {
             lastMessage: text,
             updatedAt: serverTimestamp(),
             lastMessageAuthorId: appUser.uid,
+            readBy: [appUser.uid],
         });
     } catch (error) {
       console.error("Error sending message: ", error);
