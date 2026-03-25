@@ -19,65 +19,71 @@ import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
 import { Progress } from '@/components/ui/progress';
 
-// ── MediaHost config ──────────────────────────────────────────────────────────
-const MEDIAHOST_API = 'https://app.phriendzy.com/upload/api_upload.php';
-const CHUNK_SIZE    = 2 * 1024 * 1024;  // 2 MB per chunk
-const PARALLEL      = 4;                 // 4 chunks at once
+// ── Upload config ─────────────────────────────────────────────────────────────
+// Posts to /api/upload (Next.js proxy) — avoids CORS issues entirely
+const UPLOAD_PROXY = '/api/upload';
+const CHUNK_SIZE   = 2 * 1024 * 1024;  // 2 MB
+const PARALLEL     = 3;                 // chunks in parallel
 
 const MAX_CAPTION_LENGTH = 10000;
 const MAX_HASHTAGS       = 20;
 
-// ── UUID helper ───────────────────────────────────────────────────────────────
+// ── Helpers ───────────────────────────────────────────────────────────────────
 const uid = () =>
   typeof crypto !== 'undefined' && crypto.randomUUID
     ? crypto.randomUUID()
     : Math.random().toString(36).slice(2) + Date.now().toString(36);
 
-// ── Chunked upload to MediaHost ───────────────────────────────────────────────
 async function uploadToMediaHost(
   file: File,
   onProgress: (pct: number, label: string) => void
 ): Promise<{ url: string; direct_url: string; mime_type: string }> {
+
   const totalChunks = Math.ceil(file.size / CHUNK_SIZE);
   const fileId      = uid();
   let   uploaded    = 0;
   let   bytesSent   = 0;
-  const startTime   = Date.now();
+  const t0          = Date.now();
 
   const chunkBlobs = Array.from({ length: totalChunks }, (_, i) =>
     file.slice(i * CHUNK_SIZE, (i + 1) * CHUNK_SIZE)
   );
 
-  async function sendChunk(idx: number) {
+  async function sendChunk(idx: number): Promise<Record<string, unknown>> {
     const form = new FormData();
     form.append('chunk', chunkBlobs[idx], 'chunk');
 
-    const res = await fetch(MEDIAHOST_API, {
-      method: 'POST',
+    const res = await fetch(UPLOAD_PROXY, {
+      method:  'POST',
       headers: {
-        'X-Chunk-Index':  String(idx),
-        'X-Total-Chunks': String(totalChunks),
-        'X-File-Id':      fileId,
-        'X-File-Name':    file.name,
-        'X-File-Type':    file.type,
+        'x-chunk-index':  String(idx),
+        'x-total-chunks': String(totalChunks),
+        'x-file-id':      fileId,
+        'x-file-name':    file.name,
+        'x-file-type':    file.type,
       },
       body: form,
     });
 
     const text = await res.text();
     let data: Record<string, unknown>;
+
     try {
       data = JSON.parse(text);
     } catch {
-      throw new Error(`Server error (HTTP ${res.status}): ${text.slice(0, 150)}`);
+      throw new Error(
+        `Unexpected server response (HTTP ${res.status}). ` +
+        `Check that /api/upload route exists.\n${text.slice(0, 150)}`
+      );
     }
 
-    if (!res.ok && data['done'] !== false)
-      throw new Error((data['error'] as string) || `Chunk ${idx} failed`);
+    if (!res.ok && data['done'] !== false) {
+      throw new Error((data['error'] as string) || `Chunk ${idx} failed (HTTP ${res.status})`);
+    }
 
     uploaded++;
     bytesSent += chunkBlobs[idx].size;
-    const elapsed = (Date.now() - startTime) / 1000 || 0.001;
+    const elapsed = Math.max((Date.now() - t0) / 1000, 0.001);
     const mbps    = (bytesSent / elapsed / 1e6).toFixed(1);
     const pct     = Math.round((uploaded / totalChunks) * 100);
 
@@ -86,6 +92,7 @@ async function uploadToMediaHost(
   }
 
   let lastResult: Record<string, unknown> = {};
+
   for (let i = 0; i < totalChunks; i += PARALLEL) {
     const count   = Math.min(PARALLEL, totalChunks - i);
     const results = await Promise.all(
@@ -94,8 +101,9 @@ async function uploadToMediaHost(
     lastResult = results[results.length - 1];
   }
 
-  if (!lastResult['direct_url'])
-    throw new Error('Upload finished but server did not return a URL.');
+  if (!lastResult['direct_url']) {
+    throw new Error('Upload completed but server did not return a media URL.');
+  }
 
   return {
     url:        lastResult['url']        as string,
@@ -105,7 +113,7 @@ async function uploadToMediaHost(
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-//  Page component
+//  Page
 // ─────────────────────────────────────────────────────────────────────────────
 export default function CreatePage() {
   const [file, setFile]               = useState<File | null>(null);
@@ -113,7 +121,7 @@ export default function CreatePage() {
   const [caption, setCaption]         = useState('');
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
-  const [uploadLabel, setUploadLabel] = useState('');
+  const [uploadLabel, setUploadLabel]       = useState('');
 
   const [privacy, setPrivacy]             = useState<'public' | 'friends' | 'private'>('public');
   const [allowComments, setAllowComments] = useState(true);
@@ -123,18 +131,17 @@ export default function CreatePage() {
   const [mentionQuery, setMentionQuery]             = useState('');
   const [showMentionPopover, setShowMentionPopover] = useState(false);
 
-  const router      = useRouter();
-  const { toast }   = useToast();
-  const { user }    = useUser();
-  const firestore   = useFirestore();
-  const captionRef  = useRef<HTMLTextAreaElement>(null);
+  const router     = useRouter();
+  const { toast }  = useToast();
+  const { user }   = useUser();
+  const firestore  = useFirestore();
+  const captionRef = useRef<HTMLTextAreaElement>(null);
 
   // ── File selection ──────────────────────────────────────────────────────────
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selected = e.target.files?.[0];
     if (!selected) return;
 
-    // Client-side size check — MediaHost supports up to 100 MB
     if (selected.size > 100 * 1024 * 1024) {
       toast({
         title:       'File too large',
@@ -150,21 +157,24 @@ export default function CreatePage() {
     reader.readAsDataURL(selected);
   };
 
-  // ── Caption / mention helpers ───────────────────────────────────────────────
-  const hashtagCount = useMemo(() => (caption.match(/#/g) || []).length, [caption]);
+  // ── Caption helpers ─────────────────────────────────────────────────────────
+  const hashtagCount = useMemo(
+    () => (caption.match(/#/g) || []).length,
+    [caption]
+  );
 
   const handleCaptionChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const text = e.target.value;
     if (text.length > MAX_CAPTION_LENGTH) return;
     setCaption(text);
 
-    const { selectionStart }  = e.target;
-    const textBeforeCursor    = text.substring(0, selectionStart);
-    const lastAt              = textBeforeCursor.lastIndexOf('@');
-    const lastSpace           = textBeforeCursor.lastIndexOf(' ');
+    const { selectionStart } = e.target;
+    const before   = text.substring(0, selectionStart);
+    const lastAt   = before.lastIndexOf('@');
+    const lastSpace = before.lastIndexOf(' ');
 
     if (lastAt > lastSpace) {
-      setMentionQuery(textBeforeCursor.substring(lastAt + 1));
+      setMentionQuery(before.substring(lastAt + 1));
       setShowMentionPopover(true);
     } else {
       setShowMentionPopover(false);
@@ -173,8 +183,8 @@ export default function CreatePage() {
 
   const handleMentionSelect = (username: string) => {
     const { selectionStart } = captionRef.current!;
-    const textBeforeCursor   = caption.substring(0, selectionStart);
-    const lastAt             = textBeforeCursor.lastIndexOf('@');
+    const before   = caption.substring(0, selectionStart);
+    const lastAt   = before.lastIndexOf('@');
     const newCaption = `${caption.substring(0, lastAt)}@${username} ${caption.substring(selectionStart)}`;
     setCaption(newCaption);
     setShowMentionPopover(false);
@@ -189,7 +199,10 @@ export default function CreatePage() {
     () =>
       mentionQuery
         ? users
-            .filter(u => u.username.toLowerCase().includes(mentionQuery.toLowerCase()) && u.id !== user?.uid)
+            .filter(u =>
+              u.username.toLowerCase().includes(mentionQuery.toLowerCase()) &&
+              u.id !== user?.uid
+            )
             .slice(0, 5)
         : [],
     [mentionQuery, user]
@@ -201,6 +214,8 @@ export default function CreatePage() {
     setCaption('');
     setPrivacy('public');
     setAllowComments(true);
+    setUploadProgress(0);
+    setUploadLabel('');
   };
 
   // ── Submit ──────────────────────────────────────────────────────────────────
@@ -216,11 +231,11 @@ export default function CreatePage() {
       return;
     }
     if (!firestore) {
-      toast({ title: 'Not ready', description: 'Database not connected yet.', variant: 'destructive' });
+      toast({ title: 'Not ready', description: 'Database is not connected yet.', variant: 'destructive' });
       return;
     }
     if (hashtagCount > MAX_HASHTAGS) {
-      toast({ title: 'Too many hashtags', description: `Max ${MAX_HASHTAGS} hashtags allowed.`, variant: 'destructive' });
+      toast({ title: 'Too many hashtags', description: `Max ${MAX_HASHTAGS} allowed.`, variant: 'destructive' });
       return;
     }
 
@@ -229,32 +244,30 @@ export default function CreatePage() {
     setUploadLabel('Starting upload…');
 
     try {
-      // ── Step 1: Upload file to MediaHost ──────────────────────────────────
+      // ── 1. Upload to MediaHost via proxy ────────────────────────────────
       const media = await uploadToMediaHost(file, (pct, label) => {
         setUploadProgress(pct);
         setUploadLabel(label);
       });
 
-      // ── Step 2: Save post to Firestore ────────────────────────────────────
+      // ── 2. Save post document to Firestore ──────────────────────────────
       setUploadLabel('Saving post…');
-      const isVideo = file.type.startsWith('video/');
 
       await addDoc(collection(firestore, 'posts'), {
-        authorId:          user.uid,
+        authorId:  user.uid,
         caption,
         privacy,
         allowComments,
         allowDuet,
         allowStitch,
-        createdAt:         serverTimestamp(),
+        createdAt: serverTimestamp(),
 
-        // ── MediaHost fields (page.tsx reads mediaHostUrl to show the media) ─
-        mediaHostUrl:      media.direct_url,   // ← direct raw file URL
-        mediaHostShareUrl: media.url,           // ← viewer page URL
-        mimeType:          media.mime_type,     // ← e.g. "video/mp4"
-        isVideo,
+        // These fields are what home/page.tsx reads to show the media
+        mediaHostUrl:      media.direct_url,  // ← raw file URL for <video>/<img>
+        mediaHostShareUrl: media.url,          // ← viewer page (optional)
+        mimeType:          media.mime_type,    // ← "video/mp4" | "image/jpeg" etc.
+        isVideo:           file.type.startsWith('video/'),
 
-        // Counters
         likesCount:    0,
         commentsCount: 0,
         sharesCount:   0,
@@ -263,9 +276,9 @@ export default function CreatePage() {
       toast({ title: 'Post published! 🎉', description: 'Your post is now live.' });
       router.push('/home');
 
-    } catch (error: unknown) {
-      console.error('Error creating post:', error);
-      const msg = error instanceof Error ? error.message : 'Could not create your post. Please try again.';
+    } catch (err: unknown) {
+      console.error('Post creation failed:', err);
+      const msg = err instanceof Error ? err.message : 'Could not create post. Please try again.';
       toast({ title: 'Upload Failed', description: msg, variant: 'destructive' });
     } finally {
       setIsUploading(false);
@@ -286,7 +299,7 @@ export default function CreatePage() {
             </div>
           </CardHeader>
           <CardContent className="p-6">
-            <div className="relative flex flex-col items-center justify-center w-full h-80 border-2 border-dashed rounded-lg cursor-pointer hover:bg-muted">
+            <div className="relative flex flex-col items-center justify-center w-full h-80 border-2 border-dashed rounded-lg cursor-pointer hover:bg-muted transition-colors">
               <label htmlFor="file-upload" className="flex flex-col items-center justify-center w-full h-full cursor-pointer">
                 <ImagePlus className="w-12 h-12 text-muted-foreground mb-4" />
                 <h2 className="text-xl font-bold mb-1">Select photo or video</h2>
@@ -313,19 +326,31 @@ export default function CreatePage() {
         <Card className="overflow-hidden md:max-w-5xl md:mx-auto">
           <CardHeader>
             <div className="flex items-center gap-4">
-              <Button variant="ghost" size="icon" onClick={() => setPreviewUrl(null)} disabled={isUploading}>
+              <Button
+                variant="ghost"
+                size="icon"
+                type="button"
+                onClick={() => setPreviewUrl(null)}
+                disabled={isUploading}
+              >
                 <ArrowLeft />
               </Button>
               <CardTitle>Create new post</CardTitle>
             </div>
           </CardHeader>
+
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-2 min-h-[60vh]">
 
-              {/* ── Media preview ── */}
-              <div className="relative w-full bg-black flex items-center justify-center rounded-md overflow-hidden">
+              {/* ── Media preview ─────────────────────────────────────────── */}
+              <div className="relative w-full bg-black flex items-center justify-center rounded-md overflow-hidden min-h-[300px]">
                 {file?.type.startsWith('image/') ? (
-                  <Image src={previewUrl!} alt="Preview" fill style={{ objectFit: 'contain' }} />
+                  <Image
+                    src={previewUrl!}
+                    alt="Preview"
+                    fill
+                    style={{ objectFit: 'contain' }}
+                  />
                 ) : (
                   <video
                     src={previewUrl!}
@@ -339,7 +364,7 @@ export default function CreatePage() {
                 )}
               </div>
 
-              {/* ── Form ── */}
+              {/* ── Form ──────────────────────────────────────────────────── */}
               <div className="p-6 flex flex-col">
                 <div className="flex items-center gap-3 mb-4">
                   <UserAvatar user={user} />
@@ -350,7 +375,7 @@ export default function CreatePage() {
                   <PopoverTrigger asChild>
                     <Textarea
                       ref={captionRef}
-                      placeholder="Write a caption… (e.g. #summer @phriend)"
+                      placeholder="Write a caption… #summer @phriend"
                       value={caption}
                       onChange={handleCaptionChange}
                       className="flex-grow resize-none text-base"
@@ -392,18 +417,27 @@ export default function CreatePage() {
 
                 <div className="space-y-4 text-sm">
                   <p className="font-semibold">Who can watch this</p>
-                  <RadioGroup value={privacy} onValueChange={(v: 'public' | 'friends' | 'private') => setPrivacy(v)}>
+                  <RadioGroup
+                    value={privacy}
+                    onValueChange={(v: 'public' | 'friends' | 'private') => setPrivacy(v)}
+                  >
                     <div className="flex items-center space-x-2">
                       <RadioGroupItem value="public" id="public" />
-                      <Label htmlFor="public" className="flex items-center gap-2"><Users className="w-4 h-4" /> Public</Label>
+                      <Label htmlFor="public" className="flex items-center gap-2">
+                        <Users className="w-4 h-4" /> Public
+                      </Label>
                     </div>
                     <div className="flex items-center space-x-2">
                       <RadioGroupItem value="friends" id="friends" />
-                      <Label htmlFor="friends" className="flex items-center gap-2"><User className="w-4 h-4" /> Friends</Label>
+                      <Label htmlFor="friends" className="flex items-center gap-2">
+                        <User className="w-4 h-4" /> Friends
+                      </Label>
                     </div>
                     <div className="flex items-center space-x-2">
                       <RadioGroupItem value="private" id="private" />
-                      <Label htmlFor="private" className="flex items-center gap-2"><Lock className="w-4 h-4" /> Private</Label>
+                      <Label htmlFor="private" className="flex items-center gap-2">
+                        <Lock className="w-4 h-4" /> Private
+                      </Label>
                     </div>
                   </RadioGroup>
 
@@ -424,11 +458,11 @@ export default function CreatePage() {
                   </div>
                 </div>
 
-                <div className="mt-auto pt-6 flex flex-col gap-4">
+                <div className="mt-auto pt-6 flex flex-col gap-3">
                   {isUploading && (
-                    <div className="w-full space-y-1">
-                      <Progress value={uploadProgress} />
-                      <p className="text-sm text-muted-foreground text-center">
+                    <div className="space-y-1">
+                      <Progress value={uploadProgress} className="h-2" />
+                      <p className="text-xs text-muted-foreground text-center">
                         {uploadLabel || `Uploading… ${uploadProgress}%`}
                       </p>
                     </div>
@@ -448,7 +482,7 @@ export default function CreatePage() {
                       className="w-full"
                       disabled={isUploading}
                     >
-                      {isUploading ? `${uploadProgress}%` : 'Post'}
+                      {isUploading ? `Uploading ${uploadProgress}%` : 'Post'}
                     </Button>
                   </div>
                 </div>
